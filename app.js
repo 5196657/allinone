@@ -6043,23 +6043,16 @@ function openGame(name) {
   const stage = document.getElementById('game-stage');
   stage?.classList.remove('hidden');
   const titles = {
-    memory: 'حافظه نمادها',
     reaction: 'واکنش سریع',
-    guess: 'حدس عدد',
-    ttt: 'دوز',
-    hokm: 'حکم',
-    typing: 'مسابقه تایپ'
+    mines: 'مین‌روب'
   };
   document.getElementById('game-stage-title').textContent = titles[name] || name;
   document.getElementById('game-stage-score').textContent = '';
   const body = document.getElementById('game-stage-body');
   if (!body) return;
   body.innerHTML = '';
-  if (name === 'memory') initMemoryGame(body);
-  else if (name === 'reaction') initReactionGame(body);
-  else if (name === 'guess') initGuessGame(body);
-  else if (name === 'ttt') initTttGame(body);
-  else if (name === 'hokm') initHokmGame(body);
+  if (name === 'reaction') initReactionGame(body);
+  else if (name === 'mines') initMines(body);
 }
 
 document.getElementById('games-menu')?.addEventListener('click', (e) => {
@@ -6069,59 +6062,7 @@ document.getElementById('games-menu')?.addEventListener('click', (e) => {
 });
 document.getElementById('game-back')?.addEventListener('click', showGamesMenu);
 
-function initMemoryGame(body) {
-  const symbols = ['🥇','💶','💷','₿','📈','📉','🏛️','⚡'];
-  let deck = symbols.concat(symbols).sort(() => Math.random() - 0.5);
-  let first = null, lock = false, matched = 0, moves = 0;
-  const scoreEl = document.getElementById('game-stage-score');
-  scoreEl.textContent = 'حرکت: 0';
-  const grid = document.createElement('div');
-  grid.className = 'mem-grid';
-  deck.forEach((sym, idx) => {
-    const btn = document.createElement('button');
-    btn.type = 'button';
-    btn.className = 'mem-card';
-    btn.dataset.sym = sym;
-    btn.dataset.idx = String(idx);
-    btn.textContent = '?';
-    btn.addEventListener('click', () => {
-      if (lock || btn.classList.contains('flipped') || btn.classList.contains('matched')) return;
-      btn.classList.add('flipped');
-      btn.textContent = sym;
-      if (!first) { first = btn; return; }
-      moves++;
-      scoreEl.textContent = 'حرکت: ' + moves;
-      if (first.dataset.sym === btn.dataset.sym && first !== btn) {
-        first.classList.add('matched');
-        btn.classList.add('matched');
-        first = null;
-        matched += 2;
-        if (matched === deck.length) {
-          scoreEl.textContent = 'آفرین! با ' + moves + ' حرکت تموم شد';
-          showToast('حافظه کامل شد 🎉', 'success');
-        }
-      } else {
-        lock = true;
-        const a = first, b = btn;
-        first = null;
-        setTimeout(() => {
-          a.classList.remove('flipped'); a.textContent = '?';
-          b.classList.remove('flipped'); b.textContent = '?';
-          lock = false;
-        }, 650);
-      }
-    });
-    grid.appendChild(btn);
-  });
-  const restart = document.createElement('button');
-  restart.type = 'button';
-  restart.className = 'btn-secondary';
-  restart.style.cssText = 'display:block;margin:14px auto 0;width:auto';
-  restart.textContent = 'شروع دوباره';
-  restart.onclick = () => initMemoryGame(body);
-  body.appendChild(grid);
-  body.appendChild(restart);
-}
+
 
 function initReactionGame(body) {
   const area = document.createElement('div');
@@ -6170,429 +6111,138 @@ function initReactionGame(body) {
   body.appendChild(area);
 }
 
-function initGuessGame(body) {
-  let target = 1 + Math.floor(Math.random() * 100);
-  let tries = 0;
-  const scoreEl = document.getElementById('game-stage-score');
-  scoreEl.textContent = 'تلاش: 0';
-  const box = document.createElement('div');
-  box.className = 'guess-box';
-  box.innerHTML = `
-    <p>یک عدد بین ۱ تا ۱۰۰ در ذهن دارم</p>
-    <input type="number" id="guess-input" min="1" max="100" placeholder="حدست را بنویس" />
-    <button type="button" class="btn-primary" id="guess-btn">حدس بزن</button>
-    <p class="guess-msg" id="guess-msg"></p>
-    <button type="button" class="btn-secondary" id="guess-reset" style="width:auto;margin-top:8px">عدد جدید</button>
-  `;
-  body.appendChild(box);
-  const input = box.querySelector('#guess-input');
-  const msg = box.querySelector('#guess-msg');
-  function tryGuess() {
-    const n = parseInt(input.value, 10);
-    if (isNaN(n) || n < 1 || n > 100) {
-      msg.textContent = 'عدد معتبر بین ۱ تا ۱۰۰ وارد کن';
-      return;
+
+
+
+
+
+
+// ========== Data Backup (survives updates) ==========
+const AIO_BACKUP_META = 'aio_backup_meta_v1';
+const AIO_BACKUP_SNAPSHOT = 'aio_full_snapshot_v1';
+
+function collectAllUserData() {
+  const data = {};
+  for (let i = 0; i < localStorage.length; i++) {
+    const k = localStorage.key(i);
+    if (!k) continue;
+    // keep app data keys
+    if (
+      k.startsWith('tj_') ||
+      k.startsWith('accountBalance_') ||
+      k.startsWith('riskPercent_') ||
+      k.startsWith('aio_') ||
+      k.startsWith('pt_')
+    ) {
+      data[k] = localStorage.getItem(k);
     }
-    tries++;
-    scoreEl.textContent = 'تلاش: ' + tries;
-    if (n === target) {
-      msg.textContent = 'درست بود! 🎉 در ' + tries + ' تلاش';
-      showToast('آفرین!', 'success');
-    } else if (n < target) msg.textContent = 'بزرگ‌تر…';
-    else msg.textContent = 'کوچک‌تر…';
   }
-  box.querySelector('#guess-btn').onclick = tryGuess;
-  input.addEventListener('keydown', (e) => { if (e.key === 'Enter') tryGuess(); });
-  box.querySelector('#guess-reset').onclick = () => {
-    target = 1 + Math.floor(Math.random() * 100);
-    tries = 0;
-    scoreEl.textContent = 'تلاش: 0';
-    msg.textContent = 'عدد جدید انتخاب شد';
-    input.value = '';
+  return {
+    version: 1,
+    exportedAt: new Date().toISOString(),
+    data
   };
 }
 
-function initTttGame(body) {
-  const scoreEl = document.getElementById('game-stage-score');
-  scoreEl.textContent = 'تو: X | رایانه: O';
-  let board = Array(9).fill('');
-  let over = false;
-  const status = document.createElement('div');
-  status.className = 'ttt-status';
-  status.textContent = 'نوبت توست';
-  const grid = document.createElement('div');
-  grid.className = 'ttt-grid';
-
-  const wins = [
-    [0,1,2],[3,4,5],[6,7,8],
-    [0,3,6],[1,4,7],[2,5,8],
-    [0,4,8],[2,4,6]
-  ];
-  function winner(b) {
-    for (const [a,c,d] of wins) {
-      if (b[a] && b[a] === b[c] && b[a] === b[d]) return b[a];
-    }
-    if (b.every(Boolean)) return 'draw';
-    return null;
-  }
-  function aiMove() {
-    // easy AI: win / block / random
-    const empty = board.map((v,i)=>v?null:i).filter(v=>v!=null);
-    for (const i of empty) {
-      const t = board.slice(); t[i] = 'O';
-      if (winner(t) === 'O') return i;
-    }
-    for (const i of empty) {
-      const t = board.slice(); t[i] = 'X';
-      if (winner(t) === 'X') return i;
-    }
-    return empty[Math.floor(Math.random() * empty.length)];
-  }
-  function render() {
-    grid.innerHTML = '';
-    board.forEach((v, i) => {
-      const btn = document.createElement('button');
-      btn.type = 'button';
-      btn.className = 'ttt-cell';
-      btn.textContent = v;
-      btn.disabled = !!v || over;
-      btn.onclick = () => {
-        if (over || board[i]) return;
-        board[i] = 'X';
-        let w = winner(board);
-        if (w) { end(w); render(); return; }
-        const ai = aiMove();
-        if (ai != null) board[ai] = 'O';
-        w = winner(board);
-        if (w) end(w);
-        else status.textContent = 'نوبت توست';
-        render();
-      };
-      grid.appendChild(btn);
-    });
-  }
-  function end(w) {
-    over = true;
-    if (w === 'X') { status.textContent = 'بردیا 🎉'; showToast('دوز: بردی!', 'success'); }
-    else if (w === 'O') status.textContent = 'رایانه برد';
-    else status.textContent = 'مساوی';
-  }
-  const restart = document.createElement('button');
-  restart.type = 'button';
-  restart.className = 'btn-secondary';
-  restart.style.cssText = 'display:block;margin:12px auto 0;width:auto';
-  restart.textContent = 'شروع دوباره';
-  restart.onclick = () => { board = Array(9).fill(''); over = false; status.textContent = 'نوبت توست'; render(); };
-  body.appendChild(status);
-  body.appendChild(grid);
-  body.appendChild(restart);
-  render();
+function applyBackupObject(obj) {
+  if (!obj || !obj.data || typeof obj.data !== 'object') throw new Error('فایل پشتیبان نامعتبر است');
+  Object.keys(obj.data).forEach((k) => {
+    try { localStorage.setItem(k, obj.data[k]); } catch (e) {}
+  });
+  try {
+    localStorage.setItem(AIO_BACKUP_META, JSON.stringify({ restoredAt: new Date().toISOString(), from: obj.exportedAt || '' }));
+  } catch (e) {}
 }
 
-
-// ========== Hokm (حکم) vs AI ==========
-function initHokmGame(body) {
-  const SUITS = ['♠', '♥', '♦', '♣'];
-  const SUIT_NAMES = { '♠': 'پیک', '♥': 'دل', '♦': 'خشت', '♣': 'گشنیز' };
-  const RANKS = ['2','3','4','5','6','7','8','9','10','J','Q','K','A'];
-  const RANK_VAL = Object.fromEntries(RANKS.map((r,i)=>[r,i]));
-  const NAMES = ['تو', 'حریف راست', 'یار', 'حریف چپ']; // 0 human, 1 right, 2 partner, 3 left
-  const TEAM = [0, 1, 0, 1]; // 0 = us, 1 = them
-
-  let deck, hands, trump, hakem, leader, trick, tricksWon, phase, selectedSuit;
-  let dealAnim = true; // only animate player hand on new deal
-
-  const scoreEl = document.getElementById('game-stage-score');
-  body.innerHTML = '';
-  const root = document.createElement('div');
-  root.className = 'hokm-root hokm-pro';
-  body.appendChild(root);
-
-  function newDeck() {
-    const d = [];
-    for (const s of SUITS) for (const r of RANKS) d.push({ s, r, id: s + r });
-    for (let i = d.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [d[i], d[j]] = [d[j], d[i]];
-    }
-    return d;
-  }
-  function sortHand(h) {
-    return h.slice().sort((a, b) => {
-      if (a.s !== b.s) return SUITS.indexOf(a.s) - SUITS.indexOf(b.s);
-      return RANK_VAL[b.r] - RANK_VAL[a.r];
-    });
-  }
-  function faceLabel(r) {
-    return ({ J: 'J', Q: 'Q', K: 'K', A: 'A' })[r] || r;
-  }
-  function faceName(r) {
-    return ({ J: 'سرباز', Q: 'بی‌بی', K: 'شاه', A: 'آس' })[r] || '';
-  }
-  function pipsHTML(rank, suit) {
-    const n = rank === 'A' ? 1 : (parseInt(rank, 10) || 0);
-    if (!n) {
-      // face card
-      return `<div class="hk-face">
-        <div class="hk-face-badge">${faceLabel(rank)}</div>
-        <div class="hk-face-suit">${suit}</div>
-        <div class="hk-face-name">${faceName(rank)}</div>
-      </div>`;
-    }
-    // classic-ish pip grid positions 1..10
-    const map = {
-      1: [5],
-      2: [2, 8],
-      3: [2, 5, 8],
-      4: [1, 3, 7, 9],
-      5: [1, 3, 5, 7, 9],
-      6: [1, 3, 4, 6, 7, 9],
-      7: [1, 3, 4, 5, 6, 7, 9],
-      8: [1, 3, 4, 5, 6, 7, 8, 9],
-      9: [1, 2, 3, 4, 5, 6, 7, 8, 9],
-      10: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
-    };
-    const spots = map[n] || [5];
-    let html = '<div class="hk-pips">';
-    for (let i = 1; i <= 10; i++) {
-      if (spots.includes(i)) html += `<span class="hk-pip p${i}">${suit}</span>`;
-      else html += `<span class="hk-pip empty p${i}"></span>`;
-    }
-    html += '</div>';
-    return html;
-  }
-  function cardInner(c) {
-    return `
-      <div class="hk-corner top"><span>${c.r}</span><span>${c.s}</span></div>
-      ${pipsHTML(c.r, c.s)}
-      <div class="hk-corner bot"><span>${c.r}</span><span>${c.s}</span></div>`;
-  }
-  function cardHTML(c, face = true, opts = {}) {
-    const cls = opts.cls || '';
-    const anim = opts.anim || '';
-    if (!face || !c) {
-      return `<div class="hk-card hk-back ${cls} ${anim}" aria-hidden="true">
-        <div class="hk-back-inner">
-          <div class="hk-back-pattern"></div>
-          <span class="hk-back-logo">AIO</span>
-        </div>
-      </div>`;
-    }
-    const red = (c.s === '♥' || c.s === '♦') ? ' red' : '';
-    return `<div class="hk-card${red} ${cls} ${anim}" data-id="${c.id}">${cardInner(c)}</div>`;
-  }
-  function cardButtonHTML(c, can, animIdx) {
-    const red = (c.s === '♥' || c.s === '♦') ? ' red' : '';
-    const dealCls = dealAnim ? ' deal-in' : '';
-    const delay = (dealAnim && animIdx != null) ? `style="--d:${animIdx * 0.055}s"` : '';
-    return `<button type="button" class="hk-card hk-btn${dealCls}${red}${can?' playable':''}" data-id="${c.id}" ${can?'':'disabled'} ${delay}>
-      ${cardInner(c)}
-    </button>`;
-  }
-  function highestInTrick(cards, ledSuit) {
-    // cards: [{player, card}]
-    let best = null;
-    for (const play of cards) {
-      if (!best) { best = play; continue; }
-      const a = play.card, b = best.card;
-      const aTr = a.s === trump, bTr = b.s === trump;
-      if (aTr && !bTr) best = play;
-      else if (!aTr && bTr) continue;
-      else if (aTr && bTr) {
-        if (RANK_VAL[a.r] > RANK_VAL[b.r]) best = play;
-      } else if (a.s === ledSuit && b.s === ledSuit) {
-        if (RANK_VAL[a.r] > RANK_VAL[b.r]) best = play;
-      } else if (a.s === ledSuit && b.s !== ledSuit) best = play;
-    }
-    return best;
-  }
-  function legalCards(hand, ledSuit) {
-    if (!ledSuit) return hand.slice();
-    const ofSuit = hand.filter(c => c.s === ledSuit);
-    return ofSuit.length ? ofSuit : hand.slice();
-  }
-  function aiChooseTrump(hand) {
-    const counts = { '♠':0,'♥':0,'♦':0,'♣':0 };
-    const strength = { '♠':0,'♥':0,'♦':0,'♣':0 };
-    hand.forEach(c => {
-      counts[c.s]++;
-      strength[c.s] += RANK_VAL[c.r];
-    });
-    return SUITS.slice().sort((a,b) => (counts[b]*10+strength[b]) - (counts[a]*10+strength[a]))[0];
-  }
-  function aiPlay(hand, ledSuit) {
-    const legal = legalCards(hand, ledSuit);
-    // simple: if can win with low trump / high of suit, else dump low
-    legal.sort((a,b) => RANK_VAL[a.r] - RANK_VAL[b.r]);
-    if (!ledSuit) {
-      // lead mid-high non-trump preferably
-      const non = legal.filter(c => c.s !== trump);
-      const pool = non.length ? non : legal;
-      return pool[Math.floor(pool.length / 2)];
-    }
-    const ofLed = legal.filter(c => c.s === ledSuit);
-    if (ofLed.length) return ofLed[ofLed.length - 1]; // highest of suit
-    const trumps = legal.filter(c => c.s === trump);
-    if (trumps.length) return trumps[0]; // low trump
-    return legal[0];
-  }
-
-  function deal() {
-    deck = newDeck();
-    hands = [[],[],[],[]];
-    for (let i = 0; i < 52; i++) hands[i % 4].push(deck[i]);
-    hands = hands.map(sortHand);
-    hakem = Math.floor(Math.random() * 4);
-    trump = null;
-    selectedSuit = null;
-    leader = hakem;
-    trick = [];
-    tricksWon = [0, 0]; // team0, team1
-    phase = 'trump';
-    dealAnim = true;
-    if (hakem === 0) {
-      render();
-      dealAnim = false;
-    } else {
-      trump = aiChooseTrump(hands[hakem]);
-      phase = 'play';
-      render();
-      dealAnim = false;
-      setTimeout(advancePlay, 550);
-    }
-  }
-
-  function render(winnerPlayer) {
-    const us = tricksWon[0], them = tricksWon[1];
-    scoreEl.textContent = `ما ${us}  |  ${them} آن‌ها` + (trump ? `  ·  حکم ${trump} ${SUIT_NAMES[trump]}` : '');
-    let html = '';
-    // opponents top = partner (2)
-    html += `<div class="hokm-row opp"><div class="hokm-label">${NAMES[2]} ${hakem===2?'👑':''}</div><div class="hokm-hand mini">`;
-    html += hands[2].map(() => cardHTML(null, false)).join('');
-    html += `</div></div>`;
-    // middle row: left opp, table, right opp
-    html += `<div class="hokm-mid">`;
-    html += `<div class="hokm-side"><div class="hokm-label">${NAMES[3]} ${hakem===3?'👑':''}</div><div class="hokm-hand vert">`;
-    html += hands[3].map(() => cardHTML(null, false)).join('');
-    html += `</div></div>`;
-    html += `<div class="hokm-table hokm-felt">`;
-    if (phase === 'trump' && hakem === 0) {
-      html += `<div class="hokm-trump-pick"><div class="hokm-trump-badge">👑 حاکم</div><p>خال حکم را انتخاب کن</p><div class="hokm-suits">`;
-      for (const s of SUITS) {
-        html += `<button type="button" class="hokm-suit-btn" data-suit="${s}">${s}<small>${SUIT_NAMES[s]}</small></button>`;
-      }
-      html += `</div></div>`;
-    } else {
-      const slots = [null, null, null, null];
-      trick.forEach(p => { slots[p.player] = p.card; });
-      html += `<div class="hokm-trick">`;
-      html += `<div class="ht-slot top">${slots[2] ? cardHTML(slots[2], true, {cls:'on-table from-top' + (winnerPlayer===2?' win':'')}) : '<div class="hk-slot-empty"></div>'}</div>`;
-      html += `<div class="ht-row"><div class="ht-slot">${slots[3] ? cardHTML(slots[3], true, {cls:'on-table from-left' + (winnerPlayer===3?' win':'')}) : '<div class="hk-slot-empty"></div>'}</div>`;
-      html += `<div class="ht-slot center-info">${trump ? 'حکم '+trump : '…'}</div>`;
-      html += `<div class="ht-slot">${slots[1] ? cardHTML(slots[1], true, {cls:'on-table from-right' + (winnerPlayer===1?' win':'')}) : '<div class="hk-slot-empty"></div>'}</div></div>`;
-      html += `<div class="ht-slot bottom">${slots[0] ? cardHTML(slots[0], true, {cls:'on-table from-bottom' + (winnerPlayer===0?' win':'')}) : '<div class="hk-slot-empty"></div>'}</div>`;
-      html += `</div>`;
-    }
-    html += `</div>`;
-    html += `<div class="hokm-side"><div class="hokm-label">${NAMES[1]} ${hakem===1?'👑':''}</div><div class="hokm-hand vert">`;
-    html += hands[1].map(() => cardHTML(null, false)).join('');
-    html += `</div></div></div>`;
-    // human hand
-    const led = trick.length ? trick[0].card.s : null;
-    const legal = phase === 'play' ? legalCards(hands[0], led).map(c => c.id) : [];
-    html += `<div class="hokm-row me"><div class="hokm-label">${NAMES[0]} ${hakem===0?'👑':''}</div><div class="hokm-hand me-hand">`;
-    hands[0].forEach((c, i) => {
-      const can = phase === 'play' && legal.includes(c.id) && isHumanTurn();
-      html += cardButtonHTML(c, can, i);
-    });
-    html += `</div></div>`;
-    html += `<div class="hokm-status" id="hokm-status"></div>`;
-    html += `<button type="button" class="btn-secondary" id="hokm-new" style="width:auto;margin:10px auto;display:block">دست جدید</button>`;
-    root.innerHTML = html;
-
-    const st = root.querySelector('#hokm-status');
-    if (phase === 'done') {
-      const msg = tricksWon[0] >= 7 ? 'بردید! 🎉' : 'باختید';
-      st.textContent = msg + ` (ما ${tricksWon[0]} — ${tricksWon[1]} آن‌ها)`;
-    } else if (phase === 'trump' && hakem === 0) {
-      st.textContent = 'یک خال را به‌عنوان حکم انتخاب کن';
-    } else if (isHumanTurn()) {
-      st.textContent = 'نوبت تو — یک کارت مجاز بازی کن';
-    } else {
-      st.textContent = 'نوبت حریف…';
-    }
-
-    root.querySelectorAll('.hokm-suit-btn').forEach(btn => {
-      btn.onclick = () => {
-        trump = btn.dataset.suit;
-        phase = 'play';
-        render();
-        setTimeout(advancePlay, 700);
-      };
-    });
-    root.querySelectorAll('.hk-btn.playable').forEach(btn => {
-      btn.onclick = () => humanPlay(btn.dataset.id);
-    });
-    root.querySelector('#hokm-new')?.addEventListener('click', () => { deal(); });
-  }
-
-  function isHumanTurn() {
-    if (phase !== 'play') return false;
-    const next = (leader + trick.length) % 4;
-    return next === 0;
-  }
-
-  function humanPlay(cardId) {
-    if (!isHumanTurn()) return;
-    const idx = hands[0].findIndex(c => c.id === cardId);
-    if (idx < 0) return;
-    const led = trick.length ? trick[0].card.s : null;
-    const legal = legalCards(hands[0], led);
-    const card = hands[0][idx];
-    if (!legal.some(c => c.id === card.id)) return;
-    hands[0].splice(idx, 1);
-    trick.push({ player: 0, card });
-    render();
-    setTimeout(advancePlay, 420);
-  }
-
-  function advancePlay() {
-    if (phase !== 'play') return;
-    if (trick.length === 4) {
-      const ledSuit = trick[0].card.s;
-      const win = highestInTrick(trick, ledSuit);
-      // highlight winner briefly
-      render(win.player);
-      tricksWon[TEAM[win.player]]++;
-      const nextLeader = win.player;
-      setTimeout(() => {
-        leader = nextLeader;
-        trick = [];
-        if (tricksWon[0] >= 7 || tricksWon[1] >= 7 || hands.every(h => h.length === 0)) {
-          phase = 'done';
-          render();
-          if (tricksWon[0] >= 7) showToast('حکم: بردید!', 'success');
-          return;
-        }
-        render();
-        setTimeout(advancePlay, 500);
-      }, 750);
-      return;
-    }
-    const next = (leader + trick.length) % 4;
-    if (next === 0) {
-      render();
-      return; // wait human
-    }
-    // AI plays
-    const led = trick.length ? trick[0].card.s : null;
-    const card = aiPlay(hands[next], led);
-    const ix = hands[next].findIndex(c => c.id === card.id);
-    if (ix >= 0) hands[next].splice(ix, 1);
-    trick.push({ player: next, card });
-    render();
-    setTimeout(advancePlay, 550);
-  }
-
-  deal();
+function downloadFullBackup() {
+  const payload = collectAllUserData();
+  try {
+    localStorage.setItem(AIO_BACKUP_SNAPSHOT, JSON.stringify(payload));
+  } catch (e) {}
+  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'allinone-backup-' + new Date().toISOString().slice(0, 10) + '.json';
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+  showToast('پشتیبان دانلود شد — این فایل را نگه دار', 'success');
 }
+
+function autoSnapshot() {
+  try {
+    const payload = collectAllUserData();
+    localStorage.setItem(AIO_BACKUP_SNAPSHOT, JSON.stringify(payload));
+    localStorage.setItem(AIO_BACKUP_META, JSON.stringify({ savedAt: new Date().toISOString(), keys: Object.keys(payload.data).length }));
+  } catch (e) {}
+}
+
+document.getElementById('btn-full-backup')?.addEventListener('click', downloadFullBackup);
+document.getElementById('btn-header-backup')?.addEventListener('click', downloadFullBackup);
+document.getElementById('btn-full-restore')?.addEventListener('click', () => {
+  document.getElementById('backup-file-input')?.click();
+});
+document.getElementById('backup-file-input')?.addEventListener('change', async (e) => {
+  const f = e.target.files && e.target.files[0];
+  if (!f) return;
+  try {
+    const text = await f.text();
+    const obj = JSON.parse(text);
+    applyBackupObject(obj);
+    showToast('بازیابی شد — صفحه را تازه کن', 'success');
+    setTimeout(() => location.reload(), 800);
+  } catch (err) {
+    showToast('خطا در بازیابی: ' + (err.message || err), 'error');
+  }
+  e.target.value = '';
+});
+
+// auto snapshot every 2 minutes + on hide
+setInterval(autoSnapshot, 120000);
+document.addEventListener('visibilitychange', () => { if (document.hidden) autoSnapshot(); });
+window.addEventListener('beforeunload', autoSnapshot);
+// initial delayed snapshot
+setTimeout(autoSnapshot, 5000);
+
+
+
+// ========== Minesweeper ==========
+function initMines(body) {
+  const scoreEl = document.getElementById('game-stage-score');
+  const W=8,H=8,MINES=10;
+  let board, open, flag, dead, won;
+  function build(){
+    board=Array(W*H).fill(0); open=Array(W*H).fill(false); flag=Array(W*H).fill(false); dead=false; won=false;
+    let m=0; while(m<MINES){ const i=Math.floor(Math.random()*W*H); if(board[i]===-1)continue; board[i]=-1; m++; }
+    for(let i=0;i<W*H;i++){ if(board[i]===-1)continue; let n=0; const x=i%W,y=(i/W)|0;
+      for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++){ const nx=x+dx,ny=y+dy; if(nx<0||ny<0||nx>=W||ny>=H)continue; if(board[ny*W+nx]===-1)n++; }
+      board[i]=n;
+    }
+    render();
+  }
+  function reveal(i){
+    if(dead||won||open[i]||flag[i])return;
+    open[i]=true;
+    if(board[i]===-1){ dead=true; open=open.map(()=>true); scoreEl.textContent='باختی 💥'; render(); return; }
+    if(board[i]===0){ const x=i%W,y=(i/W)|0; for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++){ const nx=x+dx,ny=y+dy; if(nx<0||ny<0||nx>=W||ny>=H)continue; reveal(ny*W+nx);} }
+    if(open.filter(Boolean).length===W*H-MINES){ won=true; scoreEl.textContent='بردی! 🎉'; }
+    render();
+  }
+  function render(){
+    if(!dead&&!won) scoreEl.textContent='پرچم: '+flag.filter(Boolean).length+' / '+MINES;
+    body.innerHTML=`<div class="mines-grid">${board.map((v,i)=>{
+      let cls='mine-cell', txt='';
+      if(flag[i]&&!open[i]) { cls+=' flagged'; txt='🚩'; }
+      else if(open[i]){ cls+=' open'; if(v===-1){cls+=' boom';txt='💣';} else if(v>0) txt=v; }
+      return `<button type="button" class="${cls}" data-i="${i}">${txt}</button>`;
+    }).join('')}</div>
+    <p class="field-hint">کلیک = باز · کلیک‌راست / نگه‌داشتن = پرچم</p>
+    <button type="button" class="btn-secondary" id="mines-new" style="width:auto;margin:10px auto;display:block">جدید</button>`;
+    body.querySelectorAll('.mine-cell').forEach(b=>{
+      b.onclick=()=>reveal(+b.dataset.i);
+      b.oncontextmenu=(e)=>{e.preventDefault(); const i=+b.dataset.i; if(open[i]||dead)return; flag[i]=!flag[i]; render();};
+    });
+    body.querySelector('#mines-new').onclick=build;
+  }
+  build();
+}
+

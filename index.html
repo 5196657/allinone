@@ -125,6 +125,7 @@
           <button type="button" class="ws-btn" data-ws="prop" data-i18n="ws_prop">Prop</button>
           <button type="button" class="ws-btn" data-ws="games">بازی</button>
         </div>
+        <button type="button" id="btn-header-backup" class="fs-toggle" title="پشتیبان داده">💾</button>
         <div class="theme-wrap">
           <button type="button" id="theme-btn" class="theme-btn" title="Theme">🎨</button>
                               <div id="theme-menu" class="theme-menu hidden">
@@ -257,6 +258,9 @@
           <div class="form-row" style="gap:8px">
             <button type="button" id="btn-export-json" class="btn-secondary" style="flex:1">خروجی JSON</button>
             <button type="button" id="btn-export-csv" class="btn-secondary" style="flex:1">خروجی CSV</button>
+            <button type="button" id="btn-full-backup" class="btn-secondary" style="flex:1">پشتیبان کامل</button>
+            <button type="button" id="btn-full-restore" class="btn-secondary" style="flex:1">بازیابی پشتیبان</button>
+            <input type="file" id="backup-file-input" accept="application/json,.json" hidden />
           </div>
           <div class="form-row" style="gap:8px;margin-top:8px">
             <button type="button" id="btn-export-report" class="btn-secondary" style="flex:1">گزارش چاپی / PDF</button>
@@ -1117,30 +1121,15 @@
           </div>
         </div>
         <div class="games-menu" id="games-menu">
-          <button type="button" class="game-card" data-game="memory">
-            <span class="game-emoji">🃏</span>
-            <strong>حافظه نمادها</strong>
-            <span>کارت‌های جفت را پیدا کن</span>
-          </button>
           <button type="button" class="game-card" data-game="reaction">
             <span class="game-emoji">⚡</span>
             <strong>واکنش سریع</strong>
             <span>سرعت کلیک خودت را بسنج</span>
           </button>
-          <button type="button" class="game-card" data-game="guess">
-            <span class="game-emoji">🔢</span>
-            <strong>حدس عدد</strong>
-            <span>عددی بین ۱ تا ۱۰۰</span>
-          </button>
-          <button type="button" class="game-card" data-game="ttt">
-            <span class="game-emoji">⭕</span>
-            <strong>دوز</strong>
-            <span>بازی با رایانه</span>
-          </button>
-          <button type="button" class="game-card" data-game="hokm">
-            <span class="game-emoji">🃏</span>
-            <strong>حکم حرفه‌ای</strong>
-            <span>کارت‌های واقعی · انیمیشن · تو + یار</span>
+          <button type="button" class="game-card" data-game="mines">
+            <span class="game-emoji">💣</span>
+            <strong>مین‌روب</strong>
+            <span>۸×۸ · ۱۰ مین</span>
           </button>
         </div>
 
