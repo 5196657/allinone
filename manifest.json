@@ -1,11 +1,11 @@
 {
-  "name": "All In One — ژورنال تریدر",
+  "name": "All In One",
   "short_name": "AIO",
-  "description": "ژورنال معاملاتی، پراپ، آمار، تقویم شمسی، بازی‌ها — نسخه وب",
+  "description": "All In One — journal, prop, planner",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
-  "orientation": "any",
+  "orientation": "portrait",
   "background_color": "#0b0f19",
   "theme_color": "#0b0f19",
   "lang": "fa",
@@ -36,7 +36,6 @@
   ],
   "categories": [
     "finance",
-    "productivity",
-    "utilities"
+    "productivity"
   ]
 }

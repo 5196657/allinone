@@ -10,10 +10,7 @@
   <meta name="theme-color" content="#0b0f19" />
   <meta name="msapplication-TileColor" content="#0b0f19" />
   <meta name="msapplication-navbutton-color" content="#0b0f19" />
-  <meta name="description" content="All In One — ژورنال تریدر، پراپ، آمار، بازی‌ها | نسخه وب" />
-  <meta property="og:title" content="All In One — AIO" />
-  <meta property="og:description" content="ژورنال معاملاتی حرفه‌ای | نسخه وب رایگان" />
-  <meta property="og:type" content="website" />
+  <meta name="description" content="All-in-one trading journal, prop, planner and finance" />
   <meta name="format-detection" content="telephone=no" />
   <title>All In One — AIO</title>
   <link rel="manifest" href="manifest.json" />
@@ -144,7 +141,6 @@
             <button type="button" class="theme-opt" data-theme="amber"><span class="swatch s-amber"></span> Amber</button>
           </div>
         </div>
-        <button type="button" id="btn-bug-report" class="fs-toggle bug-btn" title="گزارش باگ">🐛</button>
         <button type="button" id="btn-fullscreen" class="fs-toggle" title="تمام‌صفحه (F11)">⛶</button>
         <span id="prop-medal" class="prop-medal hidden" title="Prop passed">🏅</span>
         <button type="button" id="trader-mood" class="trader-mood" title="Trader mood">
@@ -1143,18 +1139,8 @@
           </button>
           <button type="button" class="game-card" data-game="hokm">
             <span class="game-emoji">🃏</span>
-            <strong>حکم</strong>
-            <span>تو + یار در برابر دو حریف</span>
-          </button>
-          <button type="button" class="game-card" data-game="billiards">
-            <span class="game-emoji">🎱</span>
-            <strong>بیلیارد حرفه‌ای</strong>
-            <span>ضربه، زاویه، قدرت و پاکت توپ</span>
-          </button>
-          <button type="button" class="game-card" data-game="typing">
-            <span class="game-emoji">⌨️</span>
-            <strong>مسابقه تایپ</strong>
-            <span>تو در برابر ربات، با کیبورد تعاملی</span>
+            <strong>حکم حرفه‌ای</strong>
+            <span>کارت‌های واقعی · انیمیشن · تو + یار</span>
           </button>
         </div>
 
@@ -1197,75 +1183,6 @@
   </div>
 
 
-
-  <!-- Bug Report Modal -->
-  <div id="bug-modal" class="bug-modal hidden">
-    <div class="bug-modal-backdrop" id="bug-modal-backdrop"></div>
-    <div class="bug-modal-panel">
-      <div class="bug-modal-header">
-        <div>
-          <p class="bug-eyebrow">Bug Desk</p>
-          <h3>گزارش باگ / پیشنهاد</h3>
-        </div>
-        <button type="button" id="bug-modal-close" class="bug-close">✕</button>
-      </div>
-      <p class="bug-hint">باگ را بنویس؛ می‌توانی با ایمیل بفرستی، کپی کنی، یا اینجا ذخیره شود.</p>
-      <div class="bug-form">
-        <div class="form-group">
-          <label>ایمیل دریافت گزارش (اختیاری)</label>
-          <input type="email" id="bug-dest-email" placeholder="مثلاً you@gmail.com" />
-        </div>
-        <div class="bug-tg-box">
-          <p class="bug-tg-title">ارسال به تلگرام ادمین</p>
-          <p class="bug-hint" style="margin-bottom:8px">
-            گزارش مستقیم برای <b>@FX_Jwad</b> ارسال می‌شود (تنظیمات از قبل داخل برنامه است).
-            اگر اینترنت تلگرام بسته باشد، از <b>کپی متن</b> یا <b>ایمیل</b> استفاده کن.
-          </p>
-          <button type="button" id="bug-tg-test" class="btn-secondary" style="width:100%;margin:0 0 8px">تست ارسال به تلگرام</button>
-          <p class="field-hint" id="bug-tg-status">وضعیت: آماده</p>
-        </div>
-        <div class="form-row">
-          <div class="form-group">
-            <label>بخش</label>
-            <select id="bug-section">
-              <option value="journal">ژورنال</option>
-              <option value="prop">پراپ</option>
-              <option value="theme">تم / ظاهر</option>
-              <option value="data">ذخیره داده</option>
-              <option value="other">سایر</option>
-            </select>
-          </div>
-          <div class="form-group">
-            <label>شدت</label>
-            <select id="bug-severity">
-              <option value="low">کم</option>
-              <option value="medium" selected>متوسط</option>
-              <option value="high">زیاد</option>
-              <option value="critical">بحرانی</option>
-            </select>
-          </div>
-        </div>
-        <div class="form-group">
-          <label>عنوان</label>
-          <input type="text" id="bug-title" maxlength="120" placeholder="خلاصه مشکل" />
-        </div>
-        <div class="form-group">
-          <label>توضیحات</label>
-          <textarea id="bug-desc" rows="4" placeholder="چه کاری کردی؟ چه اتفاقی افتاد؟ انتظار چه بود؟"></textarea>
-        </div>
-        <div class="bug-actions">
-          <button type="button" id="bug-btn-save" class="btn-secondary">ذخیره محلی</button>
-          <button type="button" id="bug-btn-copy" class="btn-secondary">کپی متن</button>
-          <button type="button" id="bug-btn-email" class="btn-secondary">ایمیل</button>
-          <button type="button" id="bug-btn-telegram" class="btn-primary">ارسال به تلگرام</button>
-        </div>
-      </div>
-      <div class="bug-history">
-        <h4>گزارش‌های ذخیره‌شده</h4>
-        <div id="bug-list" class="bug-list"></div>
-      </div>
-    </div>
-  </div>
 
   <!-- Toast -->
   <div id="toast" class="toast hidden"></div>
