@@ -84,16 +84,20 @@ window.addEventListener('DOMContentLoaded', () => {
   const dateEl = document.getElementById('trade-date');
   if (dateEl) try { dateEl.valueAsDate = new Date(); } catch (e) {}
 
-  // ورود مستقیم بدون لاگین
-  currentUser = { username: 'trader', role: 'user' };
+  // Auth: فقط اگر remember فعال باشد کاربر را بازیابی کن
+  currentUser = null;
   try {
-    const saved = localStorage.getItem('tj_currentUser');
-    if (saved) {
-      const u = JSON.parse(saved);
-      if (u && u.username) currentUser = u;
+    if (localStorage.getItem('aio_remember') === '1') {
+      const saved = localStorage.getItem('aio_remember_user') || localStorage.getItem('tj_currentUser');
+      if (saved) {
+        const u = JSON.parse(saved);
+        if (u && u.username) {
+          currentUser = u;
+          localStorage.setItem('tj_currentUser', JSON.stringify(currentUser));
+        }
+      }
     }
   } catch (e) {}
-  localStorage.setItem('tj_currentUser', JSON.stringify(currentUser));
 
   // Splash animation stays visible; user clicks Enter or auto after 3.2s
   function finishSplash() {
@@ -104,12 +108,18 @@ window.addEventListener('DOMContentLoaded', () => {
           try { splash.style.display = 'none'; } catch (e) {}
         }, 600);
       }
-      const login = document.getElementById('login-screen');
-      if (login) {
-        login.classList.add('hidden');
-        login.style.display = 'none';
+      // اگر کاربر به خاطر سپرده شده → mode، وگرنه صفحه لاگین حرفه‌ای
+      if (currentUser && currentUser.username && localStorage.getItem('aio_remember') === '1') {
+        showModeScreen();
+      } else {
+        const auth = document.getElementById('auth-login-screen');
+        if (auth) {
+          auth.classList.remove('hidden');
+          auth.style.display = '';
+        } else {
+          showModeScreen();
+        }
       }
-      showModeScreen();
     } catch (e) {
       console.error(e);
       if (splash) splash.style.display = 'none';
@@ -6246,3 +6256,1335 @@ function initMines(body) {
   build();
 }
 
+
+// ============================================================
+// AIO ENHANCEMENTS v4 — Login, Profile, Games, AI, Chat, Session, News, Shamsi
+// ============================================================
+
+// ----- Jalali (Shamsi) date helpers -----
+function gregorianToJalali(gy, gm, gd) {
+  const g_d_m = [0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334];
+  let jy = (gy <= 1600) ? 0 : 979;
+  gy -= (gy <= 1600) ? 621 : 1600;
+  const gy2 = (gm > 2) ? (gy + 1) : gy;
+  let days = (365 * gy) + Math.floor((gy2 + 3) / 4) - Math.floor((gy2 + 99) / 100) + Math.floor((gy2 + 399) / 400) - 80 + gd + g_d_m[gm - 1];
+  jy += 33 * Math.floor(days / 12053);
+  days %= 12053;
+  jy += 4 * Math.floor(days / 1461);
+  days %= 1461;
+  if (days > 365) {
+    jy += Math.floor((days - 1) / 365);
+    days = (days - 1) % 365;
+  }
+  const jm = (days < 186) ? 1 + Math.floor(days / 31) : 7 + Math.floor((days - 186) / 30);
+  const jd = 1 + ((days < 186) ? (days % 31) : ((days - 186) % 30));
+  return [jy, jm, jd];
+}
+function toShamsiStr(dateInput) {
+  try {
+    const d = dateInput instanceof Date ? dateInput : new Date(dateInput);
+    if (isNaN(d.getTime())) return String(dateInput || '');
+    const [jy, jm, jd] = gregorianToJalali(d.getFullYear(), d.getMonth() + 1, d.getDate());
+    const pad = n => String(n).padStart(2, '0');
+    return jy + '/' + pad(jm) + '/' + pad(jd);
+  } catch (e) { return String(dateInput || ''); }
+}
+// Override formatDate to always use Shamsi
+function formatDate(dateStr) {
+  return toShamsiStr(dateStr);
+}
+
+// ----- Trading session based on Tehran time -----
+function getTehranHourMinute() {
+  try {
+    const parts = new Intl.DateTimeFormat('en-GB', {
+      timeZone: 'Asia/Tehran', hour: '2-digit', minute: '2-digit', hour12: false
+    }).formatToParts(new Date());
+    const h = parseInt(parts.find(p => p.type === 'hour').value, 10);
+    const m = parseInt(parts.find(p => p.type === 'minute').value, 10);
+    return { h, m, total: h * 60 + m };
+  } catch (e) {
+    const d = new Date();
+    return { h: d.getHours(), m: d.getMinutes(), total: d.getHours() * 60 + d.getMinutes() };
+  }
+}
+function getCurrentSessionInfo() {
+  // Approximate sessions in Tehran time (UTC+3:30):
+  // Asia: 03:00–11:30  London: 11:30–16:30  NY: 16:30–01:00  Overlap Lon/NY: 16:30–20:30
+  const { total } = getTehranHourMinute();
+  if (total >= 3 * 60 && total < 11 * 60 + 30) {
+    return { key: 'asian', name: 'سشن آسیا', color: '#fbbf24', open: true };
+  }
+  if (total >= 11 * 60 + 30 && total < 16 * 60 + 30) {
+    return { key: 'london', name: 'سشن لندن', color: '#38bdf8', open: true };
+  }
+  if (total >= 16 * 60 + 30 && total < 20 * 60 + 30) {
+    return { key: 'overlap', name: 'همپوشانی لندن/نیویورک', color: '#a78bfa', open: true };
+  }
+  if (total >= 20 * 60 + 30 || total < 1 * 60) {
+    return { key: 'newyork', name: 'سشن نیویورک', color: '#34d399', open: true };
+  }
+  return { key: 'closed', name: 'بازار آرام', color: '#94a3b8', open: false };
+}
+function updateSessionBadge() {
+  const el = document.getElementById('session-name');
+  const badge = document.getElementById('session-badge');
+  const info = getCurrentSessionInfo();
+  if (el) el.textContent = info.name;
+  if (badge) {
+    badge.style.setProperty('--session-color', info.color);
+    badge.classList.toggle('session-open', info.open);
+    badge.classList.toggle('session-closed', !info.open);
+  }
+}
+setInterval(updateSessionBadge, 30000);
+
+// ----- Economic calendar (approx high-impact events) -----
+function getEconomicEvents() {
+  // Approximate recurring schedule relative to current month (educational demo)
+  const now = new Date();
+  const y = now.getFullYear();
+  const m = now.getMonth();
+  const events = [];
+  // First Friday-ish CPI (approx day 10-15), PPI mid-month, FOMC ~ mid/late month
+  const make = (day, title, impact, note) => {
+    const d = new Date(y, m, day);
+    return { date: d, title, impact, note, shamsi: toShamsiStr(d) };
+  };
+  events.push(make(12, 'CPI (تورم مصرف‌کننده آمریکا)', 'high', 'اثر قوی روی دلار و طلا'));
+  events.push(make(13, 'PPI (تورم تولیدکننده)', 'high', 'پیش‌نگر تورم'));
+  events.push(make(18, 'FOMC / تصمیم نرخ بهره فدرال رزرو', 'high', 'نوسان شدید بازارها'));
+  events.push(make(5, 'NFP (اشتغال غیرکشاورزی)', 'high', 'جمعه اول ماه تقریبی'));
+  events.push(make(22, 'GDP اولیه آمریکا', 'medium', 'رشد اقتصادی'));
+  events.push(make(25, 'Core PCE', 'high', 'شاخص مورد علاقه فدرال رزرو'));
+  return events.sort((a, b) => a.date - b.date);
+}
+function renderEconomicCalendar() {
+  const list = document.getElementById('econ-cal-list');
+  if (!list) return;
+  const events = getEconomicEvents();
+  const today = new Date(); today.setHours(0,0,0,0);
+  list.innerHTML = events.map(ev => {
+    const diff = Math.round((ev.date - today) / 86400000);
+    let when = ev.shamsi;
+    if (diff === 0) when += ' · امروز';
+    else if (diff > 0) when += ' · ' + diff + ' روز دیگر';
+    else when += ' · گذشته';
+    const cls = ev.impact === 'high' ? 'econ-high' : 'econ-med';
+    return `<div class="econ-item ${cls}"><span class="econ-title">${ev.title}</span><span class="econ-when">${when}</span><span class="econ-note">${ev.note}</span></div>`;
+  }).join('');
+}
+
+// ----- Notifications -----
+function getNotifs() {
+  try { return JSON.parse(localStorage.getItem('aio_notifs_' + (currentUser?.username || 'guest')) || '[]'); } catch { return []; }
+}
+function saveNotifs(arr) {
+  localStorage.setItem('aio_notifs_' + (currentUser?.username || 'guest'), JSON.stringify(arr.slice(0, 50)));
+}
+function pushNotification(title, body, type) {
+  const arr = getNotifs();
+  arr.unshift({ id: Date.now().toString(36), title, body, type: type || 'info', at: new Date().toISOString(), read: false });
+  saveNotifs(arr);
+  updateNotifBadge();
+  try {
+    if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
+      new Notification(title, { body, icon: 'icon-192.png' });
+    }
+  } catch (e) {}
+  if (typeof showToast === 'function') showToast(title + (body ? ' — ' + body : ''), 'success');
+}
+function updateNotifBadge() {
+  const badge = document.getElementById('notif-badge');
+  const unread = getNotifs().filter(n => !n.read).length;
+  if (!badge) return;
+  if (unread > 0) {
+    badge.textContent = unread > 9 ? '9+' : String(unread);
+    badge.classList.remove('hidden');
+  } else badge.classList.add('hidden');
+}
+function renderNotifPanel() {
+  const panel = document.getElementById('notif-panel');
+  if (!panel) return;
+  const arr = getNotifs();
+  if (!arr.length) {
+    panel.innerHTML = '<p class="field-hint" style="padding:12px">اعلانی نیست</p>';
+    return;
+  }
+  panel.innerHTML = arr.map(n => `
+    <div class="notif-item ${n.read ? '' : 'unread'}">
+      <strong>${escapeHtml(n.title)}</strong>
+      <span>${escapeHtml(n.body || '')}</span>
+      <small>${toShamsiStr(n.at)}</small>
+    </div>
+  `).join('') + '<button type="button" class="btn-secondary" id="notif-clear" style="margin:8px;width:calc(100% - 16px)">پاک کردن همه</button>';
+  panel.querySelector('#notif-clear')?.addEventListener('click', () => {
+    saveNotifs([]);
+    updateNotifBadge();
+    renderNotifPanel();
+  });
+}
+function requestNotifPermission() {
+  try {
+    if (typeof Notification !== 'undefined' && Notification.permission === 'default') {
+      Notification.requestPermission();
+    }
+  } catch (e) {}
+}
+
+// Hook trade save to notify — wrap saveTrades if needed
+const _origSaveTrades = typeof saveTrades === 'function' ? saveTrades : null;
+if (_origSaveTrades) {
+  // already defined; we'll call pushNotification after trade add elsewhere
+}
+
+// ----- Auth system (email first-time, then username/password, remember me) -----
+function getAuthUsers() {
+  return JSON.parse(localStorage.getItem('aio_auth_users') || '{}');
+}
+function saveAuthUsers(u) {
+  localStorage.setItem('aio_auth_users', JSON.stringify(u));
+}
+function setSessionUser(user, remember) {
+  currentUser = {
+    username: user.username,
+    email: user.email || '',
+    displayName: user.displayName || user.username,
+    role: user.role || 'user',
+    avatar: user.avatar || null
+  };
+  localStorage.setItem('tj_currentUser', JSON.stringify(currentUser));
+  if (remember) {
+    localStorage.setItem('aio_remember', '1');
+    localStorage.setItem('aio_remember_user', JSON.stringify(currentUser));
+  } else {
+    localStorage.setItem('aio_remember', '0');
+  }
+  updateHeaderProfile();
+}
+function clearSessionUser() {
+  currentUser = null;
+  localStorage.removeItem('tj_currentUser');
+  localStorage.setItem('aio_remember', '0');
+  localStorage.removeItem('aio_remember_user');
+}
+function showAuthLogin() {
+  const el = document.getElementById('auth-login-screen');
+  if (el) {
+    el.classList.remove('hidden');
+    el.style.display = '';
+  }
+  document.getElementById('mode-screen')?.classList.add('hidden');
+  document.getElementById('app')?.classList.add('hidden');
+}
+function hideAuthLogin() {
+  const el = document.getElementById('auth-login-screen');
+  if (el) {
+    el.classList.add('hidden');
+    el.style.display = 'none';
+  }
+}
+
+function initAuthUI() {
+  // tabs
+  document.querySelectorAll('.login-tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      document.querySelectorAll('.login-tab').forEach(t => t.classList.remove('active'));
+      tab.classList.add('active');
+      const isLogin = tab.dataset.ltab === 'login';
+      document.getElementById('form-login')?.classList.toggle('hidden', !isLogin);
+      document.getElementById('form-register')?.classList.toggle('hidden', isLogin);
+    });
+  });
+
+  document.getElementById('form-register')?.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const email = (document.getElementById('reg-email')?.value || '').trim().toLowerCase();
+    const username = (document.getElementById('reg-username')?.value || '').trim().toLowerCase();
+    const displayName = (document.getElementById('reg-displayname')?.value || '').trim() || username;
+    const pass = document.getElementById('reg-password')?.value || '';
+    const pass2 = document.getElementById('reg-password2')?.value || '';
+    const err = document.getElementById('register-error');
+    const showErr = (msg) => { if (err) { err.textContent = msg; err.classList.remove('hidden'); } };
+    if (!email || !email.includes('@')) return showErr('ایمیل معتبر وارد کنید');
+    if (username.length < 3) return showErr('نام کاربری حداقل ۳ کاراکتر');
+    if (pass.length < 6) return showErr('رمز حداقل ۶ کاراکتر');
+    if (pass !== pass2) return showErr('تکرار رمز مطابقت ندارد');
+    const users = getAuthUsers();
+    if (users[username]) return showErr('این نام کاربری قبلاً ثبت شده');
+    if (Object.values(users).some(u => (u.email || '').toLowerCase() === email)) return showErr('این ایمیل قبلاً ثبت شده');
+    users[username] = {
+      username, email, displayName, password: pass, role: 'user',
+      avatar: null, createdAt: new Date().toISOString()
+    };
+    saveAuthUsers(users);
+    // also sync legacy users store
+    try {
+      const legacy = getUsers();
+      legacy[username] = { password: pass, role: 'user', createdAt: users[username].createdAt };
+      saveUsers(legacy);
+    } catch (e2) {}
+    setSessionUser(users[username], true);
+    if (err) err.classList.add('hidden');
+    hideAuthLogin();
+    showModeScreen();
+    pushNotification('خوش آمدید', displayName + ' عزیز، حساب شما ساخته شد', 'success');
+    requestNotifPermission();
+  });
+
+  document.getElementById('form-login')?.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const email = (document.getElementById('login-email')?.value || '').trim().toLowerCase();
+    const username = (document.getElementById('login-username')?.value || '').trim().toLowerCase();
+    const pass = document.getElementById('login-password')?.value || '';
+    const remember = !!document.getElementById('login-remember')?.checked;
+    const err = document.getElementById('login-error');
+    const showErr = (msg) => { if (err) { err.textContent = msg; err.classList.remove('hidden'); } };
+    const users = getAuthUsers();
+    let user = null;
+    if (username && users[username]) user = users[username];
+    else if (email) user = Object.values(users).find(u => (u.email || '').toLowerCase() === email) || null;
+    // legacy admin fallback
+    if (!user && (username === 'jwad' || username === ADMIN_USERNAME)) {
+      user = { username: ADMIN_USERNAME, email: '', displayName: 'Admin', password: 'javad1384', role: 'admin' };
+    }
+    if (!user) return showErr('کاربر یافت نشد — ابتدا ثبت‌نام کنید');
+    if (user.password !== pass) return showErr('رمز عبور اشتباه است');
+    setSessionUser(user, remember);
+    if (err) err.classList.add('hidden');
+    hideAuthLogin();
+    showModeScreen();
+    requestNotifPermission();
+  });
+}
+
+// Override finish splash flow to respect remember-me
+const _prevFinishSplash = window.__finishSplash;
+window.__aioAuthBoot = function () {
+  initAuthUI();
+  updateSessionBadge();
+  renderEconomicCalendar();
+  updateNotifBadge();
+
+  const remember = localStorage.getItem('aio_remember') === '1';
+  let saved = null;
+  try { saved = JSON.parse(localStorage.getItem('aio_remember_user') || 'null'); } catch (e) {}
+  if (remember && saved && saved.username) {
+    currentUser = saved;
+    localStorage.setItem('tj_currentUser', JSON.stringify(currentUser));
+    hideAuthLogin();
+    // go to mode screen after splash
+    return 'auto';
+  }
+  // need login
+  return 'login';
+};
+
+// Patch DOMContentLoaded finishSplash behavior
+document.addEventListener('DOMContentLoaded', () => {
+  setTimeout(() => {
+    try {
+      const mode = window.__aioAuthBoot ? window.__aioAuthBoot() : 'auto';
+      const splash = document.getElementById('splash');
+      const enterBtn = document.getElementById('splash-enter');
+      const go = () => {
+        if (splash) {
+          splash.classList.add('hide');
+          setTimeout(() => { try { splash.style.display = 'none'; } catch (e) {} }, 500);
+        }
+        if (mode === 'login') {
+          showAuthLogin();
+        } else {
+          hideAuthLogin();
+          showModeScreen();
+        }
+        updateHeaderProfile();
+        updateSessionBadge();
+        renderEconomicCalendar();
+        refreshSymbolSuggestions();
+      };
+      if (enterBtn) {
+        enterBtn.addEventListener('click', go, { once: true });
+      }
+      // also after animation
+      setTimeout(go, 3500);
+    } catch (e) { console.error(e); }
+  }, 50);
+});
+
+// ----- Profile -----
+function updateHeaderProfile() {
+  const img = document.getElementById('header-avatar');
+  const fb = document.getElementById('header-avatar-fallback');
+  const av = currentUser?.avatar;
+  if (img && av) {
+    img.src = av;
+    img.classList.remove('hidden');
+    if (fb) fb.classList.add('hidden');
+  } else {
+    if (img) img.classList.add('hidden');
+    if (fb) {
+      fb.classList.remove('hidden');
+      fb.textContent = (currentUser?.displayName || currentUser?.username || '?').charAt(0).toUpperCase();
+    }
+  }
+}
+function openProfile() {
+  if (!currentUser) return;
+  document.getElementById('profile-displayname').value = currentUser.displayName || '';
+  document.getElementById('profile-username').value = currentUser.username || '';
+  document.getElementById('profile-email').value = currentUser.email || '';
+  const img = document.getElementById('profile-avatar-img');
+  const ph = document.getElementById('profile-avatar-placeholder');
+  if (currentUser.avatar) {
+    img.src = currentUser.avatar;
+    img.classList.remove('hidden');
+    ph?.classList.add('hidden');
+  } else {
+    img.classList.add('hidden');
+    ph?.classList.remove('hidden');
+  }
+  document.getElementById('profile-modal')?.classList.remove('hidden');
+}
+function closeProfile() {
+  document.getElementById('profile-modal')?.classList.add('hidden');
+}
+document.addEventListener('click', (e) => {
+  if (e.target.id === 'btn-profile' || e.target.closest?.('#btn-profile')) openProfile();
+  if (e.target.id === 'profile-close' || e.target.hasAttribute?.('data-close-profile')) closeProfile();
+  if (e.target.id === 'btn-notif' || e.target.closest?.('#btn-notif')) {
+    const panel = document.getElementById('notif-panel');
+    panel?.classList.toggle('hidden');
+    if (panel && !panel.classList.contains('hidden')) {
+      const arr = getNotifs().map(n => ({ ...n, read: true }));
+      saveNotifs(arr);
+      updateNotifBadge();
+      renderNotifPanel();
+    }
+  }
+});
+document.getElementById('profile-avatar-input')?.addEventListener('change', (e) => {
+  const file = e.target.files?.[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    const data = reader.result;
+    if (data && data.length > 800000) {
+      showToast('عکس خیلی بزرگ است', 'error');
+      return;
+    }
+    const img = document.getElementById('profile-avatar-img');
+    const ph = document.getElementById('profile-avatar-placeholder');
+    if (img) { img.src = data; img.classList.remove('hidden'); }
+    ph?.classList.add('hidden');
+    img.dataset.pending = data;
+  };
+  reader.readAsDataURL(file);
+});
+document.getElementById('btn-save-profile')?.addEventListener('click', () => {
+  if (!currentUser) return;
+  const dn = document.getElementById('profile-displayname')?.value?.trim() || currentUser.username;
+  const pending = document.getElementById('profile-avatar-img')?.dataset?.pending;
+  currentUser.displayName = dn;
+  if (pending) currentUser.avatar = pending;
+  localStorage.setItem('tj_currentUser', JSON.stringify(currentUser));
+  if (localStorage.getItem('aio_remember') === '1') {
+    localStorage.setItem('aio_remember_user', JSON.stringify(currentUser));
+  }
+  const users = getAuthUsers();
+  if (users[currentUser.username]) {
+    users[currentUser.username].displayName = dn;
+    if (pending) users[currentUser.username].avatar = pending;
+    saveAuthUsers(users);
+  }
+  updateHeaderProfile();
+  closeProfile();
+  showToast('پروفایل ذخیره شد', 'success');
+});
+document.getElementById('btn-logout')?.addEventListener('click', () => {
+  clearSessionUser();
+  closeProfile();
+  document.getElementById('app')?.classList.add('hidden');
+  document.getElementById('mode-screen')?.classList.add('hidden');
+  showAuthLogin();
+  showToast('از حساب خارج شدید', 'success');
+});
+
+// ----- Symbol suggestions from used symbols -----
+function refreshSymbolSuggestions() {
+  const dl = document.getElementById('symbol-suggestions');
+  if (!dl) return;
+  const set = new Set();
+  (trades || []).forEach(t => { if (t.symbol) set.add(String(t.symbol).toUpperCase()); });
+  // defaults
+  ['XAUUSD', 'EURUSD', 'GBPUSD', 'USDJPY', 'BTCUSDT', 'NAS100', 'ETHUSDT', 'US30'].forEach(s => set.add(s));
+  dl.innerHTML = [...set].map(s => `<option value="${s}"></option>`).join('');
+}
+
+// Notify on trade add — monkey-patch common save path
+(function patchTradeNotify() {
+  const form = document.getElementById('trade-form') || document.querySelector('form#new-trade-form');
+  // Also listen to successful toast patterns by wrapping showToast is heavy; instead hook after renderAll
+  const origRenderAll = typeof renderAll === 'function' ? renderAll : null;
+  // Use Mutation / event on btn save
+  document.addEventListener('click', (e) => {
+    const btn = e.target.closest?.('#btn-save-trade, #save-trade, button[type="submit"]');
+    // deferred check after save
+  }, true);
+})();
+
+// Call refresh after trades change
+const _saveTradesRef = saveTrades;
+saveTrades = function () {
+  _saveTradesRef.apply(this, arguments);
+  try {
+    refreshSymbolSuggestions();
+    const last = trades && trades[trades.length - 1];
+    if (last && last._justAdded) {
+      pushNotification('معامله ثبت شد', (last.symbol || '') + ' · ' + (last.result || '') + ' · ' + (last.netPnl != null ? last.netPnl : last.pnl || ''), 'trade');
+      delete last._justAdded;
+    }
+  } catch (e) {}
+};
+
+// Mark new trades
+const _push = Array.prototype.push;
+// safer: wrap when trade object is pushed in existing code is hard; use interval length watch
+let _tradeCountCache = 0;
+setInterval(() => {
+  try {
+    if (!trades) return;
+    if (trades.length > _tradeCountCache && _tradeCountCache > 0) {
+      const last = trades[trades.length - 1];
+      if (last) pushNotification('معامله جدید', (last.symbol || 'نماد') + ' ثبت شد · ' + toShamsiStr(last.date || new Date()), 'trade');
+    }
+    _tradeCountCache = trades.length;
+  } catch (e) {}
+}, 1500);
+
+// ----- AI Trading Assistant (rule-based) -----
+const AI_KNOWLEDGE = [
+  { k: ['ریسک', 'risk', 'مدیریت'], a: 'قانون طلایی: در هر معامله بیش از ۱–۲٪ از سرمایه را ریسک نکن. نسبت ریوارد به ریسک حداقل ۱:۲ باشد. حجم را بر اساس فاصله استاپ محاسبه کن.' },
+  { k: ['استاپ', 'stop', 'sl'], a: 'استاپ‌لاس را پشت ساختار معتبر بازار بگذار (سوئینگ، ناحیه عرضه/تقاضا). جابه‌جایی مداوم استاپ معمولاً نشانه بی‌انضباطی است.' },
+  { k: ['سشن', 'session', 'لندن', 'نیویورک', 'آسیا'], a: 'سشن لندن و همپوشانی لندن/نیویورک بیشترین نقدینگی را دارند. در سشن آسیا نوسان طلا و برخی جفت‌ها کمتر است؛ استراتژی خود را با سشن هماهنگ کن.' },
+  { k: ['طلا', 'xau', 'gold'], a: 'طلا به داده تورم (CPI/PCE)، نرخ بهره و دلار حساس است. در زمان اخبار FOMC اسپرد و لغزش بالا می‌رود؛ سایز را کم کن.' },
+  { k: ['احساس', 'fear', 'طمع', 'revenge'], a: 'بعد از ضرر پشت‌سرهم، معامله انتقام‌گیرانه ممنوع. استراحت کوتاه، مرور ژورنال و رعایت چک‌لیست قبل از ورود بعدی ضروری است.' },
+  { k: ['پراپ', 'prop', 'دراودان'], a: 'در چالش پراپ، دراودان روزانه و کلی را مثل خط قرمز ببین. هدف رسیدن به تارگت با کمترین ریسک است نه بیشترین تعداد معامله.' },
+  { k: ['ژورنال', 'journal'], a: 'ژورنال قوی شامل: دلیل ورود، احساسات، اسکرین‌شات، نتیجه و درس است. بدون ثبت، تکرار اشتباه اجتناب‌ناپذیر است.' },
+  { k: ['خبر', 'cpi', 'fomc', 'nfp'], a: 'قبل از اخبار مهم (CPI، NFP، FOMC) یا خارج شو یا سایز را نصف کن. ۱۵ دقیقه بعد از انتشار صبر کن تا جهت مشخص شود.' }
+];
+function aiReply(msg) {
+  const t = (msg || '').toLowerCase();
+  for (const item of AI_KNOWLEDGE) {
+    if (item.k.some(k => t.includes(k))) return item.a;
+  }
+  const session = getCurrentSessionInfo();
+  return 'سوالت را دقیق‌تر بپرس (ریسک، استاپ، سشن، طلا، پراپ، اخبار...). الان ' + session.name + ' است. من یک دستیار آموزشی هستم و توصیه سرمایه‌گذاری شخصی نیست.';
+}
+function appendAiMsg(text, who) {
+  const box = document.getElementById('ai-messages');
+  if (!box) return;
+  const div = document.createElement('div');
+  div.className = 'chat-bubble ' + (who === 'user' ? 'me' : 'bot');
+  div.textContent = text;
+  box.appendChild(div);
+  box.scrollTop = box.scrollHeight;
+}
+function openAiPanel() {
+  document.getElementById('ai-panel')?.classList.remove('hidden');
+  document.getElementById('public-chat-panel')?.classList.add('hidden');
+  const box = document.getElementById('ai-messages');
+  if (box && !box.dataset.ready) {
+    appendAiMsg('سلام! من دستیار تریدر AIO هستم. درباره ریسک، سشن، طلا، پراپ یا اخبار بپرس.', 'bot');
+    box.dataset.ready = '1';
+  }
+}
+function sendAi() {
+  const input = document.getElementById('ai-input');
+  const msg = (input?.value || '').trim();
+  if (!msg) return;
+  appendAiMsg(msg, 'user');
+  input.value = '';
+  setTimeout(() => appendAiMsg(aiReply(msg), 'bot'), 350);
+}
+document.getElementById('ai-send')?.addEventListener('click', sendAi);
+document.getElementById('ai-input')?.addEventListener('keydown', e => { if (e.key === 'Enter') sendAi(); });
+document.getElementById('ai-close')?.addEventListener('click', () => document.getElementById('ai-panel')?.classList.add('hidden'));
+
+// ----- Public chat (local shared) -----
+function getPublicChat() {
+  return JSON.parse(localStorage.getItem('aio_public_chat') || '[]');
+}
+function savePublicChat(msgs) {
+  localStorage.setItem('aio_public_chat', JSON.stringify(msgs.slice(-100)));
+}
+function renderPublicChat() {
+  const box = document.getElementById('pubchat-messages');
+  if (!box) return;
+  const msgs = getPublicChat();
+  box.innerHTML = msgs.map(m => `
+    <div class="chat-bubble ${m.user === currentUser?.username ? 'me' : 'bot'}">
+      <div class="chat-meta">${escapeHtml(m.name || m.user)} · ${toShamsiStr(m.at)}</div>
+      <div>${escapeHtml(m.text)}</div>
+    </div>
+  `).join('');
+  box.scrollTop = box.scrollHeight;
+}
+function openPublicChat() {
+  document.getElementById('public-chat-panel')?.classList.remove('hidden');
+  document.getElementById('ai-panel')?.classList.add('hidden');
+  renderPublicChat();
+}
+function sendPublicChat() {
+  const input = document.getElementById('pubchat-input');
+  const text = (input?.value || '').trim();
+  if (!text || !currentUser) return;
+  const msgs = getPublicChat();
+  msgs.push({
+    user: currentUser.username,
+    name: currentUser.displayName || currentUser.username,
+    text, at: new Date().toISOString()
+  });
+  savePublicChat(msgs);
+  input.value = '';
+  renderPublicChat();
+}
+document.getElementById('pubchat-send')?.addEventListener('click', sendPublicChat);
+document.getElementById('pubchat-input')?.addEventListener('keydown', e => { if (e.key === 'Enter') sendPublicChat(); });
+document.getElementById('pubchat-close')?.addEventListener('click', () => document.getElementById('public-chat-panel')?.classList.add('hidden'));
+
+// Workspace AI / Chat buttons
+document.getElementById('workspace-switch')?.addEventListener('click', (e) => {
+  const btn = e.target.closest('.ws-btn');
+  if (!btn) return;
+  if (btn.dataset.ws === 'ai') { openAiPanel(); e.stopPropagation(); }
+  if (btn.dataset.ws === 'chat') { openPublicChat(); e.stopPropagation(); }
+});
+
+// ----- Professional equity chart upgrade -----
+function drawEquityCurve() {
+  const canvas = document.getElementById('equity-canvas');
+  const empty = document.getElementById('equity-empty');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const dpr = window.devicePixelRatio || 1;
+  const w = canvas.clientWidth || 700;
+  const h = Math.max(260, canvas.clientHeight || 280);
+  canvas.width = w * dpr;
+  canvas.height = h * dpr;
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.clearRect(0, 0, w, h);
+
+  if (!trades || trades.length < 1) {
+    if (empty) empty.style.display = 'block';
+    canvas.style.display = 'none';
+    return;
+  }
+  if (empty) empty.style.display = 'none';
+  canvas.style.display = 'block';
+
+  const sorted = [...trades].sort((a, b) => new Date(a.date) - new Date(b.date));
+  let equity = 0;
+  const points = [0];
+  const labels = [''];
+  sorted.forEach(t => {
+    equity += (t.netPnl != null ? t.netPnl : (t.pnl || 0));
+    points.push(equity);
+    labels.push(toShamsiStr(t.date));
+  });
+
+  const min = Math.min(...points);
+  const max = Math.max(...points);
+  const range = max - min || 1;
+  const padL = 48, padR = 16, padT = 20, padB = 36;
+  const plotW = w - padL - padR;
+  const plotH = h - padT - padB;
+
+  // background grid
+  ctx.fillStyle = 'rgba(15,23,42,0.35)';
+  ctx.fillRect(padL, padT, plotW, plotH);
+  ctx.strokeStyle = 'rgba(148,163,184,0.12)';
+  ctx.lineWidth = 1;
+  for (let i = 0; i <= 4; i++) {
+    const y = padT + (plotH * i) / 4;
+    ctx.beginPath(); ctx.moveTo(padL, y); ctx.lineTo(padL + plotW, y); ctx.stroke();
+    const val = max - (range * i) / 4;
+    ctx.fillStyle = 'rgba(148,163,184,0.8)';
+    ctx.font = '11px Vazirmatn, Tahoma, sans-serif';
+    ctx.textAlign = 'right';
+    ctx.fillText(val.toFixed(0), padL - 6, y + 4);
+  }
+
+  // zero line
+  const zeroY = padT + plotH - ((0 - min) / range) * plotH;
+  ctx.strokeStyle = 'rgba(148,163,184,0.45)';
+  ctx.setLineDash([5, 5]);
+  ctx.beginPath(); ctx.moveTo(padL, zeroY); ctx.lineTo(padL + plotW, zeroY); ctx.stroke();
+  ctx.setLineDash([]);
+
+  // area fill
+  ctx.beginPath();
+  points.forEach((p, i) => {
+    const x = padL + (i / (points.length - 1 || 1)) * plotW;
+    const y = padT + plotH - ((p - min) / range) * plotH;
+    if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+  });
+  ctx.lineTo(padL + plotW, padT + plotH);
+  ctx.lineTo(padL, padT + plotH);
+  ctx.closePath();
+  const final = points[points.length - 1];
+  const grad = ctx.createLinearGradient(0, padT, 0, padT + plotH);
+  if (final >= 0) {
+    grad.addColorStop(0, 'rgba(16,185,129,0.35)');
+    grad.addColorStop(1, 'rgba(16,185,129,0.02)');
+  } else {
+    grad.addColorStop(0, 'rgba(244,63,94,0.35)');
+    grad.addColorStop(1, 'rgba(244,63,94,0.02)');
+  }
+  ctx.fillStyle = grad;
+  ctx.fill();
+
+  // smooth line
+  ctx.beginPath();
+  points.forEach((p, i) => {
+    const x = padL + (i / (points.length - 1 || 1)) * plotW;
+    const y = padT + plotH - ((p - min) / range) * plotH;
+    if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+  });
+  ctx.strokeStyle = final >= 0 ? '#10b981' : '#f43f5e';
+  ctx.lineWidth = 2.8;
+  ctx.lineJoin = 'round';
+  ctx.stroke();
+
+  // dots
+  points.forEach((p, i) => {
+    if (i === 0) return;
+    const x = padL + (i / (points.length - 1 || 1)) * plotW;
+    const y = padT + plotH - ((p - min) / range) * plotH;
+    ctx.beginPath();
+    ctx.arc(x, y, 3.2, 0, Math.PI * 2);
+    ctx.fillStyle = '#e2e8f0';
+    ctx.fill();
+  });
+
+  // last value badge
+  ctx.fillStyle = final >= 0 ? '#10b981' : '#f43f5e';
+  ctx.font = 'bold 13px Vazirmatn, Tahoma, sans-serif';
+  ctx.textAlign = 'left';
+  ctx.fillText((final >= 0 ? '+' : '') + final.toFixed(2), padL + 8, padT + 16);
+}
+
+// Bigger mini quote widgets
+function enhanceLivePricesLayout() {
+  const style = document.createElement('style');
+  style.textContent = `
+    .live-prices { display:grid !important; grid-template-columns:1fr 1fr !important; gap:12px !important; }
+    @media(min-width:900px){ .live-prices { grid-template-columns:1fr 1fr 1fr 1fr !important; } }
+    .tv-mini { min-height:120px !important; border-radius:14px; overflow:hidden; background:rgba(15,23,42,.6); border:1px solid rgba(148,163,184,.15); }
+    .tv-mini iframe { min-height:120px !important; }
+    #tv_advanced_host { height:520px !important; }
+  `;
+  document.head.appendChild(style);
+}
+document.addEventListener('DOMContentLoaded', enhanceLivePricesLayout);
+
+// Disable prop timer updates
+function updatePropTimer() { /* removed by request */ }
+
+// ============================================================
+// GAMES — Mines levels, Typing, Racing, Chess, MiniGolf, Zombie
+// ============================================================
+function openGame(name) {
+  document.getElementById('games-menu')?.classList.add('hidden');
+  const stage = document.getElementById('game-stage');
+  stage?.classList.remove('hidden');
+  const titles = {
+    reaction: 'واکنش سریع',
+    mines: 'مین‌روب',
+    typing: 'مسابقه تایپ',
+    racing: 'مسابقه ماشین',
+    chess: 'شطرنج',
+    minigolf: 'مینی گلف',
+    zombie: 'زامبی سروایول'
+  };
+  document.getElementById('game-stage-title').textContent = titles[name] || name;
+  document.getElementById('game-stage-score').textContent = '';
+  const body = document.getElementById('game-stage-body');
+  if (!body) return;
+  body.innerHTML = '';
+  if (name === 'reaction') initReactionGame(body);
+  else if (name === 'mines') initMinesLeveled(body);
+  else if (name === 'typing') initTypingRace(body);
+  else if (name === 'racing') initRacingGame(body);
+  else if (name === 'chess') initChessGame(body);
+  else if (name === 'minigolf') initMiniGolf(body);
+  else if (name === 'zombie') initZombieSurvival(body);
+}
+
+function initMinesLeveled(body) {
+  const scoreEl = document.getElementById('game-stage-score');
+  const levels = [
+    { name: 'آسان', W: 8, H: 8, MINES: 10 },
+    { name: 'متوسط', W: 10, H: 10, MINES: 18 },
+    { name: 'سخت', W: 12, H: 12, MINES: 30 },
+    { name: 'خبره', W: 14, H: 14, MINES: 45 },
+    { name: 'افسانه‌ای', W: 16, H: 16, MINES: 60 }
+  ];
+  let level = 0;
+  let board, open, flag, dead, won, W, H, MINES;
+
+  function pickLevelUI() {
+    body.innerHTML = `<div class="mines-level-pick">
+      <p class="field-hint">سطح را انتخاب کن</p>
+      <div class="level-grid">${levels.map((l, i) =>
+        `<button type="button" class="btn-secondary level-btn" data-lv="${i}">${l.name}<br><small>${l.W}×${l.H} · ${l.MINES} مین</small></button>`
+      ).join('')}</div>
+    </div>`;
+    body.querySelectorAll('.level-btn').forEach(b => b.onclick = () => { level = +b.dataset.lv; startLevel(); });
+  }
+
+  function startLevel() {
+    const L = levels[level];
+    W = L.W; H = L.H; MINES = L.MINES;
+    build();
+  }
+
+  function build() {
+    board = Array(W * H).fill(0);
+    open = Array(W * H).fill(false);
+    flag = Array(W * H).fill(false);
+    dead = false; won = false;
+    let m = 0;
+    while (m < MINES) {
+      const i = Math.floor(Math.random() * W * H);
+      if (board[i] === -1) continue;
+      board[i] = -1; m++;
+    }
+    for (let i = 0; i < W * H; i++) {
+      if (board[i] === -1) continue;
+      let n = 0;
+      const x = i % W, y = (i / W) | 0;
+      for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) {
+        const nx = x + dx, ny = y + dy;
+        if (nx < 0 || ny < 0 || nx >= W || ny >= H) continue;
+        if (board[ny * W + nx] === -1) n++;
+      }
+      board[i] = n;
+    }
+    render();
+  }
+
+  function reveal(i) {
+    if (dead || won || open[i] || flag[i]) return;
+    open[i] = true;
+    if (board[i] === -1) {
+      dead = true; open = open.map(() => true);
+      scoreEl.textContent = 'باختی 💥';
+      render(); return;
+    }
+    if (board[i] === 0) {
+      const x = i % W, y = (i / W) | 0;
+      for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) {
+        const nx = x + dx, ny = y + dy;
+        if (nx < 0 || ny < 0 || nx >= W || ny >= H) continue;
+        reveal(ny * W + nx);
+      }
+    }
+    if (open.filter(Boolean).length === W * H - MINES) {
+      won = true;
+      scoreEl.textContent = 'بردی! 🎉 سطح ' + levels[level].name;
+      if (level < levels.length - 1) {
+        setTimeout(() => {
+          if (confirm('آفرین! برو سطح بعد؟')) { level++; startLevel(); }
+        }, 400);
+      }
+    }
+    render();
+  }
+
+  function render() {
+    if (!dead && !won) scoreEl.textContent = levels[level].name + ' · پرچم: ' + flag.filter(Boolean).length + '/' + MINES;
+    body.innerHTML = `<div class="mines-grid" style="grid-template-columns:repeat(${W},1fr);max-width:${Math.min(480, W * 28)}px">${board.map((v, i) => {
+      let cls = 'mine-cell', txt = '';
+      if (flag[i] && !open[i]) { cls += ' flagged'; txt = '🚩'; }
+      else if (open[i]) {
+        cls += ' open';
+        if (v === -1) { cls += ' boom'; txt = '💣'; }
+        else if (v > 0) txt = v;
+      }
+      return `<button type="button" class="${cls}" data-i="${i}">${txt}</button>`;
+    }).join('')}</div>
+    <p class="field-hint">کلیک = باز · راست‌کلیک/نگه‌داشتن = پرچم</p>
+    <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap">
+      <button type="button" class="btn-secondary" id="mines-new">جدید همین سطح</button>
+      <button type="button" class="btn-secondary" id="mines-levels">انتخاب سطح</button>
+    </div>`;
+    body.querySelectorAll('.mine-cell').forEach(b => {
+      b.onclick = () => reveal(+b.dataset.i);
+      b.oncontextmenu = (e) => {
+        e.preventDefault();
+        const i = +b.dataset.i;
+        if (open[i] || dead) return;
+        flag[i] = !flag[i];
+        render();
+      };
+    });
+    body.querySelector('#mines-new').onclick = build;
+    body.querySelector('#mines-levels').onclick = pickLevelUI;
+  }
+
+  pickLevelUI();
+}
+
+function initTypingRace(body) {
+  const texts = [
+    'انضباط مهم‌ترین سرمایه تریدر است.',
+    'ریسک هر معامله را از قبل مشخص کن.',
+    'ژورنال معاملاتی مسیر پیشرفت توست.',
+    'صبر در بازار بهتر از عجله در ورود است.',
+    'سشن مناسب را برای استراتژی خود انتخاب کن.',
+    'The trend is your friend until it bends.',
+    'Plan your trade and trade your plan carefully.'
+  ];
+  let target = texts[Math.floor(Math.random() * texts.length)];
+  let started = null;
+  let done = false;
+  const scoreEl = document.getElementById('game-stage-score');
+  const best = Number(localStorage.getItem('aio_type_best') || 0);
+
+  body.innerHTML = `
+    <div class="typing-game">
+      <p class="field-hint">متن زیر را با دقت تایپ کن</p>
+      <div class="typing-target" id="type-target">${escapeHtml(target)}</div>
+      <textarea id="type-input" class="typing-input" rows="3" placeholder="اینجا بنویس..." dir="auto"></textarea>
+      <div class="typing-stats">
+        <span id="type-wpm">WPM: —</span>
+        <span id="type-acc">دقت: —</span>
+        <span>بهترین: ${best || '—'} WPM</span>
+      </div>
+      <button type="button" class="btn-secondary" id="type-reset">متن جدید</button>
+    </div>`;
+
+  const input = body.querySelector('#type-input');
+  const targetEl = body.querySelector('#type-target');
+
+  function reset() {
+    target = texts[Math.floor(Math.random() * texts.length)];
+    targetEl.textContent = target;
+    input.value = '';
+    started = null;
+    done = false;
+    scoreEl.textContent = '';
+    body.querySelector('#type-wpm').textContent = 'WPM: —';
+    body.querySelector('#type-acc').textContent = 'دقت: —';
+  }
+
+  input.addEventListener('input', () => {
+    if (done) return;
+    if (!started) started = performance.now();
+    const val = input.value;
+    // highlight
+    let html = '';
+    for (let i = 0; i < target.length; i++) {
+      const ch = target[i];
+      if (i < val.length) {
+        html += `<span class="${val[i] === ch ? 'ok' : 'bad'}">${escapeHtml(ch)}</span>`;
+      } else html += escapeHtml(ch);
+    }
+    targetEl.innerHTML = html;
+
+    if (val.length >= target.length) {
+      done = true;
+      const sec = (performance.now() - started) / 1000;
+      let correct = 0;
+      for (let i = 0; i < target.length; i++) if (val[i] === target[i]) correct++;
+      const acc = Math.round((correct / target.length) * 100);
+      const wpm = Math.round((target.length / 5) / (sec / 60));
+      body.querySelector('#type-wpm').textContent = 'WPM: ' + wpm;
+      body.querySelector('#type-acc').textContent = 'دقت: ' + acc + '%';
+      scoreEl.textContent = wpm + ' WPM';
+      if (acc >= 90 && wpm > best) {
+        localStorage.setItem('aio_type_best', String(wpm));
+      }
+    }
+  });
+  body.querySelector('#type-reset').onclick = reset;
+}
+
+function initRacingGame(body) {
+  const scoreEl = document.getElementById('game-stage-score');
+  body.innerHTML = `<canvas id="race-canvas" width="360" height="480" style="width:100%;max-width:360px;display:block;margin:0 auto;border-radius:12px;background:#0b1220"></canvas>
+    <p class="field-hint">← → یا لمس چپ/راست · جلوگیری از برخورد</p>
+    <button type="button" class="btn-secondary" id="race-start" style="display:block;margin:8px auto">شروع / مجدد</button>`;
+  const canvas = body.querySelector('#race-canvas');
+  const ctx = canvas.getContext('2d');
+  let carX = 160, speed = 0, score = 0, alive = false, obstacles = [], raf;
+
+  function reset() {
+    carX = 160; speed = 3; score = 0; alive = true; obstacles = [];
+    scoreEl.textContent = '0';
+    loop();
+  }
+
+  function loop() {
+    if (!alive) return;
+    ctx.fillStyle = '#0b1220';
+    ctx.fillRect(0, 0, 360, 480);
+    // road
+    ctx.fillStyle = '#1e293b';
+    ctx.fillRect(60, 0, 240, 480);
+    ctx.strokeStyle = '#f8fafc';
+    ctx.setLineDash([16, 12]);
+    ctx.beginPath(); ctx.moveTo(180, 0); ctx.lineTo(180, 480); ctx.stroke();
+    ctx.setLineDash([]);
+
+    // obstacles
+    if (Math.random() < 0.03 + score / 5000) {
+      obstacles.push({ x: 70 + Math.random() * 200, y: -40, w: 36, h: 50 });
+    }
+    speed = 3 + score / 400;
+    obstacles.forEach(o => o.y += speed);
+    obstacles = obstacles.filter(o => o.y < 500);
+    ctx.fillStyle = '#ef4444';
+    obstacles.forEach(o => {
+      ctx.fillRect(o.x, o.y, o.w, o.h);
+      // collision
+      if (o.y + o.h > 400 && o.y < 450 && o.x < carX + 28 && o.x + o.w > carX) {
+        alive = false;
+        scoreEl.textContent = 'امتیاز: ' + score + ' · باختی';
+      }
+    });
+
+    // car
+    ctx.fillStyle = '#38bdf8';
+    ctx.fillRect(carX, 410, 28, 44);
+    ctx.fillStyle = '#0ea5e9';
+    ctx.fillRect(carX + 4, 418, 20, 12);
+
+    if (alive) {
+      score++;
+      scoreEl.textContent = String(score);
+      raf = requestAnimationFrame(loop);
+    }
+  }
+
+  function move(dir) {
+    if (!alive) return;
+    carX = Math.max(65, Math.min(265, carX + dir * 22));
+  }
+  window.addEventListener('keydown', function raceKey(e) {
+    if (!body.contains(canvas)) { window.removeEventListener('keydown', raceKey); return; }
+    if (e.key === 'ArrowLeft') move(-1);
+    if (e.key === 'ArrowRight') move(1);
+  });
+  canvas.addEventListener('click', (e) => {
+    const r = canvas.getBoundingClientRect();
+    const x = e.clientX - r.left;
+    move(x < r.width / 2 ? -1 : 1);
+  });
+  body.querySelector('#race-start').onclick = () => { cancelAnimationFrame(raf); reset(); };
+  reset();
+}
+
+function initChessGame(body) {
+  const scoreEl = document.getElementById('game-stage-score');
+  // Simple chess: player white vs random legal-ish AI
+  const pieces = {
+    wK: '♔', wQ: '♕', wR: '♖', wB: '♗', wN: '♘', wP: '♙',
+    bK: '♚', bQ: '♛', bR: '♜', bB: '♝', bN: '♞', bP: '♟'
+  };
+  let board = [
+    ['bR','bN','bB','bQ','bK','bB','bN','bR'],
+    ['bP','bP','bP','bP','bP','bP','bP','bP'],
+    [null,null,null,null,null,null,null,null],
+    [null,null,null,null,null,null,null,null],
+    [null,null,null,null,null,null,null,null],
+    [null,null,null,null,null,null,null,null],
+    ['wP','wP','wP','wP','wP','wP','wP','wP'],
+    ['wR','wN','wB','wQ','wK','wB','wN','wR']
+  ];
+  let selected = null;
+  let turn = 'w';
+
+  function render() {
+    scoreEl.textContent = turn === 'w' ? 'نوبت شما (سفید)' : 'نوبت رایانه...';
+    let html = '<div class="chess-board">';
+    for (let r = 0; r < 8; r++) {
+      for (let c = 0; c < 8; c++) {
+        const dark = (r + c) % 2 === 1;
+        const p = board[r][c];
+        const sel = selected && selected[0] === r && selected[1] === c ? ' selected' : '';
+        html += `<button type="button" class="chess-cell ${dark ? 'dark' : 'light'}${sel}" data-r="${r}" data-c="${c}">${p ? pieces[p] : ''}</button>`;
+      }
+    }
+    html += '</div><p class="field-hint">روی مهره سفید کلیک کن و خانه مقصد را بزن</p>';
+    body.innerHTML = html;
+    body.querySelectorAll('.chess-cell').forEach(cell => {
+      cell.onclick = () => onCell(+cell.dataset.r, +cell.dataset.c);
+    });
+  }
+
+  function isWhite(p) { return p && p[0] === 'w'; }
+  function isBlack(p) { return p && p[0] === 'b'; }
+
+  function onCell(r, c) {
+    if (turn !== 'w') return;
+    const p = board[r][c];
+    if (selected) {
+      const [sr, sc] = selected;
+      const sp = board[sr][sc];
+      if (sr === r && sc === c) { selected = null; render(); return; }
+      // basic move: any empty or capture black (simplified legality)
+      if (isWhite(sp) && (!p || isBlack(p))) {
+        board[r][c] = sp;
+        board[sr][sc] = null;
+        selected = null;
+        turn = 'b';
+        render();
+        setTimeout(aiMove, 450);
+        return;
+      }
+      selected = isWhite(p) ? [r, c] : null;
+      render();
+    } else if (isWhite(p)) {
+      selected = [r, c];
+      render();
+    }
+  }
+
+  function aiMove() {
+    const moves = [];
+    for (let r = 0; r < 8; r++) for (let c = 0; c < 8; c++) {
+      if (!isBlack(board[r][c])) continue;
+      for (let tr = 0; tr < 8; tr++) for (let tc = 0; tc < 8; tc++) {
+        const t = board[tr][tc];
+        if (!t || isWhite(t)) {
+          // prefer captures
+          moves.push({ fr: r, fc: c, tr, tc, score: t ? 10 + Math.random() : Math.random() });
+        }
+      }
+    }
+    moves.sort((a, b) => b.score - a.score);
+    // try a few random reasonable
+    for (let i = 0; i < Math.min(20, moves.length); i++) {
+      const m = moves[Math.floor(Math.random() * Math.min(8, moves.length))];
+      if (!m) break;
+      const piece = board[m.fr][m.fc];
+      if (!isBlack(piece)) continue;
+      board[m.tr][m.tc] = piece;
+      board[m.fr][m.fc] = null;
+      turn = 'w';
+      render();
+      return;
+    }
+    turn = 'w';
+    render();
+  }
+
+  render();
+}
+
+function initMiniGolf(body) {
+  const scoreEl = document.getElementById('game-stage-score');
+  body.innerHTML = `<canvas id="golf-canvas" width="360" height="480" style="width:100%;max-width:360px;display:block;margin:0 auto;border-radius:12px;background:#14532d"></canvas>
+    <p class="field-hint">بکش و رها کن برای ضربه · توپ را در حفره بینداز</p>
+    <button type="button" class="btn-secondary" id="golf-reset" style="display:block;margin:8px auto">ریست</button>`;
+  const canvas = body.querySelector('#golf-canvas');
+  const ctx = canvas.getContext('2d');
+  let ball = { x: 180, y: 420, vx: 0, vy: 0 };
+  let hole = { x: 180, y: 80, r: 14 };
+  let strokes = 0;
+  let dragging = null;
+  let won = false;
+
+  function draw() {
+    ctx.fillStyle = '#166534';
+    ctx.fillRect(0, 0, 360, 480);
+    // hole
+    ctx.fillStyle = '#020617';
+    ctx.beginPath(); ctx.arc(hole.x, hole.y, hole.r, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = '#f8fafc'; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(hole.x, hole.y - hole.r); ctx.lineTo(hole.x, hole.y - 40); ctx.stroke();
+    ctx.fillStyle = '#ef4444';
+    ctx.beginPath(); ctx.moveTo(hole.x, hole.y - 40); ctx.lineTo(hole.x + 18, hole.y - 32); ctx.lineTo(hole.x, hole.y - 24); ctx.fill();
+    // ball
+    ctx.fillStyle = '#f8fafc';
+    ctx.beginPath(); ctx.arc(ball.x, ball.y, 8, 0, Math.PI * 2); ctx.fill();
+    if (dragging) {
+      ctx.strokeStyle = 'rgba(248,250,252,0.7)';
+      ctx.beginPath(); ctx.moveTo(ball.x, ball.y); ctx.lineTo(dragging.x, dragging.y); ctx.stroke();
+    }
+    scoreEl.textContent = won ? 'گل! ⛳ ' + strokes + ' ضربه' : 'ضربه: ' + strokes;
+  }
+
+  function tick() {
+    if (won) { draw(); return; }
+    ball.x += ball.vx; ball.y += ball.vy;
+    ball.vx *= 0.98; ball.vy *= 0.98;
+    if (Math.abs(ball.vx) < 0.05) ball.vx = 0;
+    if (Math.abs(ball.vy) < 0.05) ball.vy = 0;
+    if (ball.x < 8 || ball.x > 352) ball.vx *= -0.8;
+    if (ball.y < 8 || ball.y > 472) ball.vy *= -0.8;
+    ball.x = Math.max(8, Math.min(352, ball.x));
+    ball.y = Math.max(8, Math.min(472, ball.y));
+    const dx = ball.x - hole.x, dy = ball.y - hole.y;
+    if (Math.hypot(dx, dy) < hole.r - 2 && Math.hypot(ball.vx, ball.vy) < 2.5) {
+      won = true;
+      ball.vx = ball.vy = 0;
+      ball.x = hole.x; ball.y = hole.y;
+    }
+    draw();
+    requestAnimationFrame(tick);
+  }
+
+  function pos(e) {
+    const r = canvas.getBoundingClientRect();
+    const client = e.touches ? e.touches[0] : e;
+    return { x: (client.clientX - r.left) * (360 / r.width), y: (client.clientY - r.top) * (480 / r.height) };
+  }
+  canvas.addEventListener('pointerdown', e => {
+    if (won || Math.hypot(ball.vx, ball.vy) > 0.2) return;
+    dragging = pos(e);
+  });
+  canvas.addEventListener('pointermove', e => { if (dragging) { dragging = pos(e); } });
+  canvas.addEventListener('pointerup', e => {
+    if (!dragging) return;
+    const p = pos(e);
+    ball.vx = (ball.x - p.x) * 0.12;
+    ball.vy = (ball.y - p.y) * 0.12;
+    strokes++;
+    dragging = null;
+  });
+  body.querySelector('#golf-reset').onclick = () => {
+    ball = { x: 180, y: 420, vx: 0, vy: 0 };
+    strokes = 0; won = false;
+  };
+  tick();
+}
+
+function initZombieSurvival(body) {
+  const scoreEl = document.getElementById('game-stage-score');
+  body.innerHTML = `<canvas id="zom-canvas" width="360" height="480" style="width:100%;max-width:360px;display:block;margin:0 auto;border-radius:12px;background:#0f172a"></canvas>
+    <p class="field-hint">حرکت: ←→↑↓ یا WASD · شلیک: فاصله / کلیک</p>
+    <button type="button" class="btn-secondary" id="zom-start" style="display:block;margin:8px auto">شروع</button>`;
+  const canvas = body.querySelector('#zom-canvas');
+  const ctx = canvas.getContext('2d');
+  let player, zombies, bullets, keys, score, alive, raf;
+
+  function reset() {
+    player = { x: 180, y: 240, hp: 5 };
+    zombies = []; bullets = []; keys = {}; score = 0; alive = true;
+    scoreEl.textContent = '0';
+    loop();
+  }
+
+  function loop() {
+    if (!alive) return;
+    ctx.fillStyle = '#0f172a';
+    ctx.fillRect(0, 0, 360, 480);
+    // move player
+    const sp = 2.4;
+    if (keys['ArrowLeft'] || keys['a']) player.x -= sp;
+    if (keys['ArrowRight'] || keys['d']) player.x += sp;
+    if (keys['ArrowUp'] || keys['w']) player.y -= sp;
+    if (keys['ArrowDown'] || keys['s']) player.y += sp;
+    player.x = Math.max(12, Math.min(348, player.x));
+    player.y = Math.max(12, Math.min(468, player.y));
+
+    if (Math.random() < 0.025 + score / 8000) {
+      const side = Math.floor(Math.random() * 4);
+      let x = 0, y = 0;
+      if (side === 0) { x = Math.random() * 360; y = -10; }
+      if (side === 1) { x = Math.random() * 360; y = 490; }
+      if (side === 2) { x = -10; y = Math.random() * 480; }
+      if (side === 3) { x = 370; y = Math.random() * 480; }
+      zombies.push({ x, y, hp: 1 + (score > 50 ? 1 : 0) });
+    }
+
+    // bullets
+    bullets.forEach(b => { b.x += b.vx; b.y += b.vy; });
+    bullets = bullets.filter(b => b.x > -20 && b.x < 380 && b.y > -20 && b.y < 500);
+
+    // zombies
+    zombies.forEach(z => {
+      const dx = player.x - z.x, dy = player.y - z.y;
+      const d = Math.hypot(dx, dy) || 1;
+      z.x += (dx / d) * 1.1;
+      z.y += (dy / d) * 1.1;
+      if (d < 18) {
+        player.hp--;
+        z.x -= dx / d * 30;
+        z.y -= dy / d * 30;
+        if (player.hp <= 0) {
+          alive = false;
+          scoreEl.textContent = 'امتیاز: ' + score + ' · lag پایان';
+        }
+      }
+    });
+
+    // collisions bullet-zombie
+    bullets.forEach(b => {
+      zombies.forEach(z => {
+        if (Math.hypot(b.x - z.x, b.y - z.y) < 14) {
+          z.hp--; b.x = -999;
+          if (z.hp <= 0) { z.dead = true; score += 1; }
+        }
+      });
+    });
+    zombies = zombies.filter(z => !z.dead);
+    bullets = bullets.filter(b => b.x !== -999);
+
+    // draw
+    ctx.fillStyle = '#22c55e';
+    ctx.beginPath(); ctx.arc(player.x, player.y, 11, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#ef4444';
+    zombies.forEach(z => { ctx.beginPath(); ctx.arc(z.x, z.y, 12, 0, Math.PI * 2); ctx.fill(); });
+    ctx.fillStyle = '#fbbf24';
+    bullets.forEach(b => { ctx.beginPath(); ctx.arc(b.x, b.y, 3, 0, Math.PI * 2); ctx.fill(); });
+    // hp
+    ctx.fillStyle = '#e2e8f0';
+    ctx.font = '12px sans-serif';
+    ctx.fillText('HP: ' + player.hp, 10, 18);
+
+    if (alive) {
+      scoreEl.textContent = String(score);
+      raf = requestAnimationFrame(loop);
+    }
+  }
+
+  function shoot(tx, ty) {
+    if (!alive) return;
+    const dx = tx - player.x, dy = ty - player.y;
+    const d = Math.hypot(dx, dy) || 1;
+    bullets.push({ x: player.x, y: player.y, vx: (dx / d) * 6, vy: (dy / d) * 6 });
+  }
+
+  window.addEventListener('keydown', function zk(e) {
+    if (!body.contains(canvas)) { window.removeEventListener('keydown', zk); return; }
+    keys[e.key] = true;
+    if (e.key === ' ') { e.preventDefault(); shoot(player.x, player.y - 40); }
+  });
+  window.addEventListener('keyup', e => { keys[e.key] = false; });
+  canvas.addEventListener('click', e => {
+    const r = canvas.getBoundingClientRect();
+    shoot((e.clientX - r.left) * (360 / r.width), (e.clientY - r.top) * (480 / r.height));
+  });
+  body.querySelector('#zom-start').onclick = () => { cancelAnimationFrame(raf); reset(); };
+  reset();
+}
+
+// Ensure escapeHtml exists
+if (typeof escapeHtml !== 'function') {
+  window.escapeHtml = function (s) {
+    return String(s || '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  };
+}
+
+// Re-bind games menu after override
+document.getElementById('games-menu')?.addEventListener('click', (e) => {
+  const card = e.target.closest('.game-card');
+  if (!card) return;
+  openGame(card.dataset.game);
+});
+
+console.log('[AIO] enhancements loaded');

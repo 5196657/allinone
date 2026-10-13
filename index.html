@@ -54,7 +54,7 @@
       <div class="splash-ring r2"></div>
     </div>
     <div class="splash-content">
-      <div class="aio-mark theme-logo">
+      <div class="aio-mark theme-logo" data-logo="AIO">
         <span class="aio-letter" style="--i:0">A</span>
         <span class="aio-letter" style="--i:1">I</span>
         <span class="aio-letter" style="--i:2">O</span>
@@ -68,6 +68,74 @@
         <div class="loader-core">AIO</div>
       </div>
       <button type="button" id="splash-enter" class="splash-enter-btn" data-i18n="enter_app">Enter App</button>
+    </div>
+  </div>
+
+
+  <!-- Professional Login Screen -->
+  <div id="auth-login-screen" class="login-screen hidden">
+    <div class="login-bg">
+      <div class="chart-grid"></div>
+      <div class="glow-orb orb1"></div>
+      <div class="glow-orb orb2"></div>
+    </div>
+    <div class="login-shell">
+      <div class="login-brand">
+        <div class="aio-logo theme-logo" aria-label="AIO"><span>A</span><span>I</span><span>O</span></div>
+        <h1>All In One</h1>
+        <p class="login-tagline">ژورنال · پراپ · بازی · هوش مصنوعی</p>
+      </div>
+      <div class="login-card pro-login-card">
+        <div class="login-tabs">
+          <button type="button" class="login-tab active" data-ltab="login">ورود</button>
+          <button type="button" class="login-tab" data-ltab="register">ثبت‌نام</button>
+        </div>
+        <form id="form-login" class="login-form" autocomplete="on">
+          <div class="form-group">
+            <label for="login-email">ایمیل</label>
+            <input type="email" id="login-email" placeholder="name@email.com" autocomplete="email" />
+          </div>
+          <div class="form-group">
+            <label for="login-username">نام کاربری</label>
+            <input type="text" id="login-username" placeholder="username" autocomplete="username" />
+          </div>
+          <div class="form-group">
+            <label for="login-password">رمز عبور</label>
+            <input type="password" id="login-password" placeholder="••••••••" autocomplete="current-password" />
+          </div>
+          <label class="check-item remember-row">
+            <input type="checkbox" id="login-remember" />
+            <span>مرا به خاطر بسپار (بدون نیاز به ورود مجدد)</span>
+          </label>
+          <p id="login-error" class="login-error hidden"></p>
+          <button type="submit" class="btn-primary btn-login-full">ورود به برنامه</button>
+          <p class="login-hint">اولین بار با ایمیل ثبت‌نام کنید؛ دفعات بعد با نام کاربری و رمز وارد شوید.</p>
+        </form>
+        <form id="form-register" class="login-form hidden" autocomplete="on">
+          <div class="form-group">
+            <label for="reg-email">ایمیل</label>
+            <input type="email" id="reg-email" placeholder="name@email.com" required autocomplete="email" />
+          </div>
+          <div class="form-group">
+            <label for="reg-username">نام کاربری</label>
+            <input type="text" id="reg-username" placeholder="حداقل ۳ کاراکتر" required minlength="3" autocomplete="username" />
+          </div>
+          <div class="form-group">
+            <label for="reg-displayname">نام نمایشی</label>
+            <input type="text" id="reg-displayname" placeholder="مثلاً علی" />
+          </div>
+          <div class="form-group">
+            <label for="reg-password">رمز عبور</label>
+            <input type="password" id="reg-password" placeholder="حداقل ۶ کاراکتر" required minlength="6" autocomplete="new-password" />
+          </div>
+          <div class="form-group">
+            <label for="reg-password2">تکرار رمز</label>
+            <input type="password" id="reg-password2" placeholder="تکرار رمز عبور" required minlength="6" autocomplete="new-password" />
+          </div>
+          <p id="register-error" class="login-error hidden"></p>
+          <button type="submit" class="btn-primary btn-login-full">ایجاد حساب</button>
+        </form>
+      </div>
     </div>
   </div>
 
@@ -120,10 +188,16 @@
         <span>All In One</span>
       </div>
       <div class="header-actions">
+        <div id="session-badge" class="session-badge" title="سشن معاملاتی (تهران)">
+          <span class="session-dot"></span>
+          <span id="session-name">—</span>
+        </div>
         <div class="workspace-switch" id="workspace-switch" title="Choose section">
           <button type="button" class="ws-btn active" data-ws="journal" data-i18n="ws_journal">Journal</button>
           <button type="button" class="ws-btn" data-ws="prop" data-i18n="ws_prop">Prop</button>
           <button type="button" class="ws-btn" data-ws="games">بازی</button>
+          <button type="button" class="ws-btn" data-ws="ai">AI</button>
+          <button type="button" class="ws-btn" data-ws="chat">چت</button>
         </div>
         <button type="button" id="btn-header-backup" class="fs-toggle" title="پشتیبان داده">💾</button>
         <div class="theme-wrap">
@@ -182,7 +256,17 @@
             </div>
           </div>
         </div>
-<!-- logout removed -->
+
+        <button type="button" id="btn-profile" class="profile-avatar-btn" title="پروفایل">
+          <img id="header-avatar" src="" alt="" class="hidden" />
+          <span id="header-avatar-fallback">👤</span>
+        </button>
+        <div id="notif-bell-wrap" class="notif-bell-wrap">
+          <button type="button" id="btn-notif" class="fs-toggle" title="اعلان‌ها">🔔</button>
+          <span id="notif-badge" class="notif-badge hidden">0</span>
+          <div id="notif-panel" class="notif-panel hidden"></div>
+        </div>
+
       </div>
     </header>
 
@@ -287,7 +371,8 @@
           </div>
           <div class="form-group">
             <label>Symbol / جفت‌ارز</label>
-            <input type="text" id="symbol" placeholder="مثلاً EURUSD یا XAUUSD" required />
+            <input type="text" id="symbol" list="symbol-suggestions" placeholder="مثلاً EURUSD یا XAUUSD" required autocomplete="off" />
+            <datalist id="symbol-suggestions"></datalist>
             <div class="symbol-chips">
               <button type="button" class="chip sym-chip" data-sym="XAUUSD">طلا</button>
               <button type="button" class="chip sym-chip" data-sym="EURUSD">یورو</button>
@@ -539,7 +624,7 @@
         </div>
         <h3 class="section-title">نمودار عملکرد</h3>
         <div class="equity-wrap">
-          <canvas id="equity-canvas" width="400" height="200"></canvas>
+          <canvas id="equity-canvas" width="800" height="320" style="width:100%;height:280px"></canvas>
           <p id="equity-empty" class="empty-state" style="display:none">برای رسم نمودار، حداقل ۱ معامله ثبت کنید</p>
         </div>
       </section>
@@ -656,6 +741,14 @@
 
         <!-- Sub: challenge -->
         <div id="prop-sub-challenge" class="prop-subpanel">
+          <div id="econ-calendar" class="econ-calendar">
+            <div class="econ-cal-header">
+              <strong>📅 اخبار مهم اقتصادی</strong>
+              <span class="field-hint">بر اساس تقویم تقریبی · منطقه زمانی تهران</span>
+            </div>
+            <div id="econ-cal-list" class="econ-cal-list"></div>
+          </div>
+
           <div class="prop-setup risk-box">
             <div class="risk-title"><span>انتخاب پلن و سایز</span></div>
             <div class="form-group">
@@ -715,11 +808,7 @@
             <button type="button" id="btn-save-prop" class="btn-primary">ذخیره پلن و شروع</button>
           </div>
 
-          <div id="prop-timer-box" class="prop-timer-box">
-            <div class="prop-timer-title">تایمر چالش</div>
-            <div id="prop-timer-text" class="prop-timer-text">—</div>
-            <div id="prop-timer-sub" class="prop-timer-sub"></div>
-          </div>
+<!-- prop timer removed -->
 
           <div class="prop-top-actions">
             <button type="button" id="btn-pass-phase1" class="btn-next-phase">پاس مرحله ۱ ✓</button>
@@ -1129,7 +1218,32 @@
           <button type="button" class="game-card" data-game="mines">
             <span class="game-emoji">💣</span>
             <strong>مین‌روب</strong>
-            <span>۸×۸ · ۱۰ مین</span>
+            <span>لول‌بندی ۸×۸ تا ۱۶×۱۶</span>
+          </button>
+          <button type="button" class="game-card" data-game="typing">
+            <span class="game-emoji">⌨️</span>
+            <strong>مسابقه تایپ</strong>
+            <span>سرعت و دقت تایپ</span>
+          </button>
+          <button type="button" class="game-card" data-game="racing">
+            <span class="game-emoji">🏎️</span>
+            <strong>مسابقه ماشین</strong>
+            <span>رانندگی و سبقت</span>
+          </button>
+          <button type="button" class="game-card" data-game="chess">
+            <span class="game-emoji">♟️</span>
+            <strong>شطرنج</strong>
+            <span>بازیکن در برابر رایانه</span>
+          </button>
+          <button type="button" class="game-card" data-game="minigolf">
+            <span class="game-emoji">⛳</span>
+            <strong>مینی گلف</strong>
+            <span>ضربه بزن و گل کن</span>
+          </button>
+          <button type="button" class="game-card" data-game="zombie">
+            <span class="game-emoji">🧟</span>
+            <strong>زامبی سروایول</strong>
+            <span>زنده‌ماندن دوبعدی</span>
           </button>
         </div>
 
@@ -1172,6 +1286,66 @@
   </div>
 
 
+
+
+  <!-- Profile Modal -->
+  <div id="profile-modal" class="modal hidden">
+    <div class="modal-backdrop" data-close-profile></div>
+    <div class="modal-content profile-modal-content">
+      <button class="modal-close" id="profile-close">✕</button>
+      <h2>پروفایل من</h2>
+      <div class="profile-body">
+        <div class="profile-avatar-wrap">
+          <img id="profile-avatar-img" class="profile-avatar-img hidden" alt="avatar" />
+          <div id="profile-avatar-placeholder" class="profile-avatar-placeholder">👤</div>
+          <label class="btn-secondary profile-upload-btn">
+            تغییر عکس
+            <input type="file" id="profile-avatar-input" accept="image/*" hidden />
+          </label>
+        </div>
+        <div class="form-group">
+          <label>نام نمایشی</label>
+          <input type="text" id="profile-displayname" />
+        </div>
+        <div class="form-group">
+          <label>نام کاربری</label>
+          <input type="text" id="profile-username" readonly />
+        </div>
+        <div class="form-group">
+          <label>ایمیل</label>
+          <input type="email" id="profile-email" readonly />
+        </div>
+        <button type="button" id="btn-save-profile" class="btn-primary">ذخیره تغییرات</button>
+        <button type="button" id="btn-logout" class="btn-fail" style="margin-top:12px;width:100%">خروج از حساب</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- AI Assistant Panel (overlay mode) -->
+  <div id="ai-panel" class="side-panel hidden">
+    <div class="side-panel-header">
+      <strong>🤖 دستیار هوش مصنوعی تریدر</strong>
+      <button type="button" id="ai-close" class="modal-close">✕</button>
+    </div>
+    <div id="ai-messages" class="chat-messages"></div>
+    <div class="chat-input-row">
+      <input type="text" id="ai-input" placeholder="سوال بپرس... مثلاً مدیریت ریسک" />
+      <button type="button" id="ai-send" class="btn-primary">ارسال</button>
+    </div>
+  </div>
+
+  <!-- Public Chat Panel -->
+  <div id="public-chat-panel" class="side-panel hidden">
+    <div class="side-panel-header">
+      <strong>💬 چت عمومی</strong>
+      <button type="button" id="pubchat-close" class="modal-close">✕</button>
+    </div>
+    <div id="pubchat-messages" class="chat-messages"></div>
+    <div class="chat-input-row">
+      <input type="text" id="pubchat-input" placeholder="پیام خود را بنویسید..." maxlength="300" />
+      <button type="button" id="pubchat-send" class="btn-primary">ارسال</button>
+    </div>
+  </div>
 
   <!-- Toast -->
   <div id="toast" class="toast hidden"></div>
