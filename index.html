@@ -1,0 +1,1275 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl" translate="no" class="notranslate">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="google" content="notranslate" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="theme-color" content="#0b0f19" />
+  <meta name="msapplication-TileColor" content="#0b0f19" />
+  <meta name="msapplication-navbutton-color" content="#0b0f19" />
+  <meta name="description" content="All In One — ژورنال تریدر، پراپ، آمار، بازی‌ها | نسخه وب" />
+  <meta property="og:title" content="All In One — AIO" />
+  <meta property="og:description" content="ژورنال معاملاتی حرفه‌ای | نسخه وب رایگان" />
+  <meta property="og:type" content="website" />
+  <meta name="format-detection" content="telephone=no" />
+  <title>All In One — AIO</title>
+  <link rel="manifest" href="manifest.json" />
+  <link rel="icon" type="image/png" href="favicon.png" />
+  <link rel="apple-touch-icon" href="icon-192.png" />
+  <link rel="apple-touch-icon" sizes="152x152" href="icon-152.png" />
+  <link rel="apple-touch-icon" sizes="180x180" href="icon-192.png" />
+  <link rel="stylesheet" href="styles.css" />
+  <link rel="preload" href="styles.css" as="style" />
+  <style>
+    html, body {
+      background: #070b14 !important;
+      color: #f1f5f9;
+      margin: 0;
+      font-family: Tahoma, 'Segoe UI', system-ui, sans-serif;
+    }
+    .splash { position:fixed; inset:0; background:#070b14; z-index:9999; display:flex; align-items:center; justify-content:center; flex-direction:column; }
+  </style>
+  <!-- فونت غیرمسدودکننده -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" media="print" onload="this.media='all'" />
+  <noscript><link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" /></noscript>
+</head>
+<body class="notranslate" translate="no">
+  <!-- Splash Screen -->
+  <div id="global-loader" class="global-loader hidden">
+    <div class="modern-loader">
+      <div class="loader-ring"></div>
+      <div class="loader-ring delay"></div>
+      <div class="loader-core">AIO</div>
+    </div>
+    <p class="loader-text">Loading...</p>
+  </div>
+  <div id="splash" class="splash">
+    <div class="splash-bg">
+      <div class="splash-orb o1"></div>
+      <div class="splash-orb o2"></div>
+      <div class="splash-orb o3"></div>
+      <div class="splash-ring r1"></div>
+      <div class="splash-ring r2"></div>
+    </div>
+    <div class="splash-content">
+      <div class="aio-mark theme-logo">
+        <span class="aio-letter" style="--i:0">A</span>
+        <span class="aio-letter" style="--i:1">I</span>
+        <span class="aio-letter" style="--i:2">O</span>
+      </div>
+      <div class="aio-line"></div>
+      <p class="splash-title">All In One</p>
+      <p class="splash-sub" data-i18n="splash_sub">Journal · Prop · Planner · Finance</p>
+      <div class="splash-loader modern-loader">
+        <div class="loader-ring"></div>
+        <div class="loader-ring delay"></div>
+        <div class="loader-core">AIO</div>
+      </div>
+      <button type="button" id="splash-enter" class="splash-enter-btn" data-i18n="enter_app">Enter App</button>
+    </div>
+  </div>
+
+<!-- Mode Select -->
+  <div id="mode-screen" class="login-screen hidden">
+    <div class="login-bg">
+      <div class="chart-grid"></div>
+      <div class="glow-orb orb1"></div>
+      <div class="glow-orb orb2"></div>
+    </div>
+    <div class="mode-shell">
+      <div class="mode-brand">
+        <div class="aio-logo theme-logo" id="header-aio-logo" aria-label="AIO"><span>A</span><span>I</span><span>O</span></div>
+        <h1 class="mode-brand-title">All In One</h1>
+        <p class="mode-brand-sub">ژورنال · پراپ · بازی</p>
+      </div>
+      <div class="mode-cards">
+        <h2 class="mode-title" data-i18n="mode_start">Where do you start?</h2>
+        <div class="mode-grid">
+          <button type="button" id="btn-mode-journal" class="mode-card">
+            <div class="mode-card-glow"></div>
+            <div class="mode-icon">📓</div>
+            <strong data-i18n="mode_journal">Trade Journal</strong>
+            <span data-i18n="mode_journal_sub">Log trades, P&L, live chart</span>
+          </button>
+          <button type="button" id="btn-mode-prop" class="mode-card prop">
+            <div class="mode-card-glow"></div>
+            <div class="mode-icon">🏛️</div>
+            <strong data-i18n="mode_prop">SGB Prop</strong>
+            <span data-i18n="mode_prop_sub">Prop challenge management</span>
+          </button>
+          <button type="button" id="btn-mode-games" class="mode-card games">
+            <div class="mode-card-glow"></div>
+            <div class="mode-icon">🎮</div>
+            <strong>بازی</strong>
+            <span>چند بازی ساده برای استراحت ذهن</span>
+          </button>
+        </div>
+        <p id="motivational-quote" class="motivational-quote"></p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main App -->
+  <div id="app" class="app hidden">
+    <!-- Header -->
+    <header class="header">
+      <div class="header-logo">
+        <span class="aio-logo" title="All In One">AIO</span>
+        <span>All In One</span>
+      </div>
+      <div class="header-actions">
+        <div class="workspace-switch" id="workspace-switch" title="Choose section">
+          <button type="button" class="ws-btn active" data-ws="journal" data-i18n="ws_journal">Journal</button>
+          <button type="button" class="ws-btn" data-ws="prop" data-i18n="ws_prop">Prop</button>
+          <button type="button" class="ws-btn" data-ws="games">بازی</button>
+        </div>
+        <div class="theme-wrap">
+          <button type="button" id="theme-btn" class="theme-btn" title="Theme">🎨</button>
+                              <div id="theme-menu" class="theme-menu hidden">
+            <button type="button" class="theme-opt" data-theme="midnight"><span class="swatch s-midnight"></span> Midnight</button>
+            <button type="button" class="theme-opt" data-theme="emerald"><span class="swatch s-emerald"></span> Emerald</button>
+            <button type="button" class="theme-opt" data-theme="ocean"><span class="swatch s-ocean"></span> Ocean</button>
+            <button type="button" class="theme-opt" data-theme="sunset"><span class="swatch s-sunset"></span> Sunset</button>
+            <button type="button" class="theme-opt" data-theme="royal"><span class="swatch s-royal"></span> Royal</button>
+            <button type="button" class="theme-opt" data-theme="rose"><span class="swatch s-rose"></span> Rose</button>
+            <button type="button" class="theme-opt" data-theme="goldblack"><span class="swatch s-goldblack"></span> Gold Black</button>
+            <button type="button" class="theme-opt" data-theme="crimson"><span class="swatch s-crimson"></span> Crimson</button>
+            <button type="button" class="theme-opt" data-theme="arctic"><span class="swatch s-arctic"></span> Arctic</button>
+            <button type="button" class="theme-opt" data-theme="cyber"><span class="swatch s-cyber"></span> Cyber</button>
+            <button type="button" class="theme-opt" data-theme="amber"><span class="swatch s-amber"></span> Amber</button>
+          </div>
+        </div>
+        <button type="button" id="btn-bug-report" class="fs-toggle bug-btn" title="گزارش باگ">🐛</button>
+        <button type="button" id="btn-fullscreen" class="fs-toggle" title="تمام‌صفحه (F11)">⛶</button>
+        <span id="prop-medal" class="prop-medal hidden" title="Prop passed">🏅</span>
+        <button type="button" id="trader-mood" class="trader-mood" title="Trader mood">
+          <span id="mood-face" class="mood-face">😐</span>
+        </button>
+        <div class="user-menu-wrap">
+          <div id="user-menu" class="user-menu hidden">
+            <p class="lang-menu-title" data-i18n="lang_menu_title">Language</p>
+            <div class="lang-icon-row">
+              <button type="button" class="lang-icon-btn" data-lang="fa" title="Persian">
+                <span class="lang-badge fa-badge">
+                  <svg viewBox="0 0 48 48" width="28" height="28" aria-hidden="true">
+                    <rect width="48" height="48" rx="12" fill="#0f172a"/>
+                    <rect x="6" y="10" width="36" height="8" rx="2" fill="#ef4444"/>
+                    <rect x="6" y="20" width="36" height="8" rx="2" fill="#f8fafc"/>
+                    <rect x="6" y="30" width="36" height="8" rx="2" fill="#22c55e"/>
+                    <circle cx="24" cy="24" r="3.2" fill="#0ea5e9"/>
+                  </svg>
+                </span>
+                <span class="lang-code">FA</span>
+                <span class="lang-name">Persian</span>
+              </button>
+              <button type="button" class="lang-icon-btn" data-lang="en" title="English">
+                <span class="lang-badge en-badge">
+                  <svg viewBox="0 0 48 48" width="28" height="28" aria-hidden="true">
+                    <rect width="48" height="48" rx="12" fill="#1e3a8a"/>
+                    <path d="M0 18h48v12H0z" fill="#f8fafc"/>
+                    <path d="M18 0h12v48H18z" fill="#f8fafc"/>
+                    <path d="M0 21h48v6H0z" fill="#dc2626"/>
+                    <path d="M21 0h6v48h-6z" fill="#dc2626"/>
+                    <path d="M0 0l48 48M48 0L0 48" stroke="#f8fafc" stroke-width="5"/>
+                    <path d="M0 0l48 48M48 0L0 48" stroke="#dc2626" stroke-width="2"/>
+                  </svg>
+                </span>
+                <span class="lang-code">EN</span>
+                <span class="lang-name">English</span>
+              </button>
+            </div>
+          </div>
+        </div>
+<!-- logout removed -->
+      </div>
+    </header>
+
+    <!-- Tabs -->
+    <nav class="tabs">
+      <button class="tab" data-tab="dashboard">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+        <span>Home</span>
+      </button>
+      <button class="tab active" data-tab="new">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M12 5v14M5 12h14"/>
+        </svg>
+        <span>Trade</span>
+      </button>
+      <button class="tab" data-tab="summary">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/>
+        </svg>
+        <span>Summary</span>
+      </button>
+      <button class="tab" data-tab="analytics">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 20V10M12 20V4M6 20v-6"/></svg>
+        <span>Stats</span>
+      </button>
+      <button class="tab" data-tab="history">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/>
+        </svg>
+        <span>History</span>
+      </button>
+      <button class="tab" data-tab="chart">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M3 3v18h18"/><path d="M7 16l4-8 4 4 5-6"/>
+        </svg>
+        <span>Chart</span>
+      </button>
+    </nav>
+
+    <!-- Content -->
+    <main class="content">
+      <!-- Dashboard Home -->
+      <section id="tab-dashboard" class="tab-panel">
+        <div class="dash-hero">
+          <h2>داشبورد تریدر</h2>
+          <p class="dash-sub" id="dash-greeting">خلاصه عملکرد امروز و هفته</p>
+        </div>
+        <div id="discipline-banner" class="discipline-banner hidden">
+          <strong>🔒 حالت انضباط فعال</strong>
+          <span id="discipline-text">به دلیل ضررهای پشت‌سرهم، ثبت معامله موقتاً محدود است.</span>
+        </div>
+        <div class="stats-grid dash-stats">
+          <div class="stat-card"><span class="stat-label">PnL امروز</span><span class="stat-value" id="dash-today-pnl">0</span></div>
+          <div class="stat-card"><span class="stat-label">معاملات امروز</span><span class="stat-value" id="dash-today-count">0</span></div>
+          <div class="stat-card"><span class="stat-label">Win rate هفته</span><span class="stat-value" id="dash-week-wr">0%</span></div>
+          <div class="stat-card profit"><span class="stat-label">PnL هفته</span><span class="stat-value" id="dash-week-pnl">0</span></div>
+        </div>
+        <div class="goals-box">
+          <h3 class="section-title">اهداف روزانه</h3>
+          <div class="form-row">
+            <div class="form-group"><label>هدف سود ($)</label><input type="number" id="goal-daily-profit" step="1" placeholder="50" /></div>
+            <div class="form-group"><label>سقف ضرر ($)</label><input type="number" id="goal-daily-loss" step="1" placeholder="30" /></div>
+          </div>
+          <div class="form-row">
+            <div class="form-group"><label>حداکثر معامله/روز</label><input type="number" id="goal-max-trades" step="1" placeholder="5" /></div>
+            <div class="form-group"><label>قفل بعد از N ضرر متوالی</label><input type="number" id="goal-loss-streak" step="1" placeholder="3" /></div>
+          </div>
+          <button type="button" id="btn-save-goals" class="btn-primary" style="width:100%">ذخیره اهداف</button>
+          <div class="goal-progress" id="goal-progress"></div>
+        </div>
+        <div class="backup-box">
+          <h3 class="section-title">پشتیبان‌گیری</h3>
+          <div class="form-row" style="gap:8px">
+            <button type="button" id="btn-export-json" class="btn-secondary" style="flex:1">خروجی JSON</button>
+            <button type="button" id="btn-export-csv" class="btn-secondary" style="flex:1">خروجی CSV</button>
+          </div>
+          <div class="form-row" style="gap:8px;margin-top:8px">
+            <button type="button" id="btn-export-report" class="btn-secondary" style="flex:1">گزارش چاپی / PDF</button>
+            <label class="btn-secondary" style="flex:1;text-align:center;cursor:pointer;padding:10px">
+              ورود JSON
+              <input type="file" id="import-json-file" accept=".json,application/json" hidden />
+            </label>
+          </div>
+        </div>
+      </section>
+
+      <!-- New Trade Tab -->
+      <section id="tab-new" class="tab-panel active">
+        <div id="trade-lock-msg" class="discipline-banner hidden">ثبت معامله به دلیل حالت انضباط قفل است.</div>
+        <form id="trade-form" class="trade-form">
+          <div class="checklist-box">
+            <h4>چک‌لیست قبل از معامله</h4>
+            <label class="check-item"><input type="checkbox" class="pre-check" data-key="trend" /> روند مشخص است</label>
+            <label class="check-item"><input type="checkbox" class="pre-check" data-key="session" /> سشن مناسب است</label>
+            <label class="check-item"><input type="checkbox" class="pre-check" data-key="risk" /> ریسک محاسبه شده</label>
+            <label class="check-item"><input type="checkbox" class="pre-check" data-key="plan" /> پلن ورود/خروج دارم</label>
+            <label class="check-item"><input type="checkbox" class="pre-check" data-key="emotion" /> احساسات کنترل است</label>
+            <p class="field-hint" id="checklist-hint">حداقل ۳ مورد را تیک بزنید (توصیه می‌شود)</p>
+          </div>
+          <div class="form-group">
+            <label>Symbol / جفت‌ارز</label>
+            <input type="text" id="symbol" placeholder="مثلاً EURUSD یا XAUUSD" required />
+            <div class="symbol-chips">
+              <button type="button" class="chip sym-chip" data-sym="XAUUSD">طلا</button>
+              <button type="button" class="chip sym-chip" data-sym="EURUSD">یورو</button>
+              <button type="button" class="chip sym-chip" data-sym="GBPUSD">پوند</button>
+              <button type="button" class="chip sym-chip" data-sym="USDJPY">ین</button>
+              <button type="button" class="chip sym-chip" data-sym="BTCUSDT">بیت‌کوین</button>
+              <button type="button" class="chip sym-chip" data-sym="NAS100">نزدک</button>
+              <button type="button" class="chip sym-chip" data-sym="ETHUSDT">اتریوم</button>
+              <button type="button" class="chip sym-chip" data-sym="US30">داوجونز</button>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label>جهت معامله</label>
+              <div class="direction-toggle">
+                <button type="button" class="dir-btn long active" data-dir="long">لانگ ▲</button>
+                <button type="button" class="dir-btn short" data-dir="short">شورت ▼</button>
+              </div>
+            </div>
+            <div class="form-group">
+              <label data-i18n="label_date">Date</label>
+              <input type="date" id="trade-date" required />
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label>قیمت ورود</label>
+              <input type="number" id="entry" step="any" placeholder="0.00" required />
+            </div>
+            <div class="form-group">
+              <label data-i18n="label_lot">Lot size</label>
+              <input type="number" id="lot" step="0.01" placeholder="0.01" />
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label data-i18n="label_sl">Stop Loss</label>
+              <input type="number" id="sl" step="any" placeholder="0.00" />
+            </div>
+            <div class="form-group">
+              <label data-i18n="label_tp">Take Profit</label>
+              <input type="number" id="tp" step="any" placeholder="0.00" />
+            </div>
+          </div>
+
+          <!-- مدیریت ریسک خودکار -->
+          <div class="risk-box">
+            <div class="risk-title">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+              </svg>
+              <span>مدیریت ریسک خودکار</span>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label>Account balance ($)</label>
+                <input type="number" id="balance" step="any" placeholder="مثلاً 1000" />
+              </div>
+              <div class="form-group">
+                <label>ریسک مجاز (%)</label>
+                <input type="number" id="risk-percent" step="0.1" placeholder="1" value="1" />
+              </div>
+            </div>
+            <div class="risk-results" id="risk-results">
+              <div class="risk-item">
+                <span class="risk-label">فاصله تا SL</span>
+                <span class="risk-value" id="sl-distance">—</span>
+              </div>
+              <div class="risk-item">
+                <span class="risk-label">ریسک به ریوارد</span>
+                <span class="risk-value" id="rr-ratio">—</span>
+              </div>
+              <div class="risk-item highlight">
+                <span class="risk-label">لات پیشنهادی</span>
+                <span class="risk-value" id="suggested-lot">—</span>
+              </div>
+              <div class="risk-item">
+                <span class="risk-label">ضرر احتمالی</span>
+                <span class="risk-value negative" id="potential-loss">—</span>
+              </div>
+              <div class="risk-item">
+                <span class="risk-label">سود احتمالی</span>
+                <span class="risk-value positive" id="potential-profit">—</span>
+              </div>
+            </div>
+            <button type="button" id="btn-apply-lot" class="btn-apply-lot hidden">اعمال لات پیشنهادی</button>
+          </div>
+
+          <div class="form-group">
+            <label>Result معامله</label>
+            <div class="result-toggle">
+              <button type="button" class="res-btn" data-res="tp">تی‌پی شد ✓</button>
+              <button type="button" class="res-btn" data-res="sl">استاپ شد ✕</button>
+              <button type="button" class="res-btn" data-res="be">سر به سر</button>
+              <button type="button" class="res-btn" data-res="manual">بستن دستی</button>
+              <button type="button" class="res-btn" data-res="rf">ریسک‌فری</button>
+            </div>
+            <p class="field-hint">با انتخاب تی‌پی/استاپ، سود/ضرر از روی قیمت‌ها خودکار حساب می‌شود. دستی = ورود آزاد</p>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label>سود / ضرر ناخالص ($)</label>
+              <input type="number" id="pnl" step="any" placeholder="خودکار یا دستی" />
+            </div>
+            <div class="form-group">
+              <label>Commission ($)</label>
+              <input type="number" id="commission" step="any" placeholder="0" value="0" />
+            </div>
+          </div>
+          <div class="form-group" id="rf-amount-group" style="display:none">
+            <label>مقدار سود ریسک‌فری ($)</label>
+            <input type="number" id="rf-amount" step="any" placeholder="مثلاً 15" />
+          </div>
+          <p class="field-hint" id="net-pnl-hint">Net P&L = ناخالص − Commission</p>
+
+          <div class="form-group strategy-box">
+            <label>استراتژی</label>
+            <div class="strategy-select-row">
+              <select id="strategy-select">
+                <option value="">— انتخاب استراتژی —</option>
+              </select>
+              <button type="button" id="btn-strategy-delete" class="btn-danger-text" title="حذف استراتژی انتخاب‌شده">حذف</button>
+            </div>
+            <div class="strategy-add-row">
+              <input type="text" id="strategy-new-name" placeholder="نام استراتژی جدید (مثلاً بریک‌اوت طلا)" maxlength="60" />
+              <button type="button" id="btn-strategy-save" class="btn-secondary">ذخیره</button>
+            </div>
+            <p class="field-hint">استراتژی‌های ذخیره‌شده در معاملات بعدی هم قابل انتخاب هستند</p>
+            <div class="tag-chips" id="strategy-chips">
+              <button type="button" class="chip tag-chip" data-tag="Breakout">بریک‌اوت</button>
+              <button type="button" class="chip tag-chip" data-tag="Reversal">ریورسال</button>
+              <button type="button" class="chip tag-chip" data-tag="Scalp">اسکالپ</button>
+              <button type="button" class="chip tag-chip" data-tag="Swing">سویینگ</button>
+              <button type="button" class="chip tag-chip" data-tag="News">خبر</button>
+              <button type="button" class="chip tag-chip" data-tag="Trend">روند</button>
+              <button type="button" class="chip tag-chip" data-tag="Range">رنج</button>
+            </div>
+            <input type="hidden" id="strategy-tags" value="" />
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>سشن</label>
+              <select id="trade-session">
+                <option value="auto">خودکار</option>
+                <option value="asian">آسیا</option>
+                <option value="london">لندن</option>
+                <option value="newyork">نیویورک</option>
+                <option value="overlap">همپوشانی</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>احساس</label>
+              <select id="trade-emotion">
+                <option value="">—</option>
+                <option value="confident">مطمئن</option>
+                <option value="calm">آرام</option>
+                <option value="fomo">FOMO</option>
+                <option value="revenge">انتقامی</option>
+                <option value="uncertain">مردد</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>بر چه اساسی وارد شدید؟</label>
+            <textarea id="reason" rows="3" placeholder="مثلاً: شکست مقاومت + واگرایی RSI + کندل اینگالفینگ..."></textarea>
+          </div>
+
+          <div class="form-group">
+            <label>Notes‌های بیشتر</label>
+            <textarea id="notes" rows="2" placeholder="احساسات، اشتباهات، نکات یادگیری..."></textarea>
+          </div>
+
+                              <div class="form-group">
+            <label>عکس‌های معامله (تا ۳ عکس — اختیاری)</label>
+            <div class="multi-image-row" id="image-slots">
+              <div class="image-slot" data-slot="0">
+                <input type="file" class="slot-file" accept="image/*" hidden />
+                <div class="slot-placeholder">📷<span>عکس ۱</span></div>
+                <img class="slot-preview hidden" alt="" />
+                <button type="button" class="slot-remove hidden">✕</button>
+              </div>
+              <div class="image-slot" data-slot="1">
+                <input type="file" class="slot-file" accept="image/*" hidden />
+                <div class="slot-placeholder">📷<span>عکس ۲</span></div>
+                <img class="slot-preview hidden" alt="" />
+                <button type="button" class="slot-remove hidden">✕</button>
+              </div>
+              <div class="image-slot" data-slot="2">
+                <input type="file" class="slot-file" accept="image/*" hidden />
+                <div class="slot-placeholder">📷<span>عکس ۳</span></div>
+                <img class="slot-preview hidden" alt="" />
+                <button type="button" class="slot-remove hidden">✕</button>
+              </div>
+            </div>
+          </div>
+
+<button type="submit" class="btn-primary">
+            <span>Save trade</span>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <path d="M5 12h14M12 5l7 7-7 7"/>
+            </svg>
+          </button>
+        </form>
+      </section>
+
+      <!-- Summary Tab -->
+      <section id="tab-summary" class="tab-panel">
+        <div class="summary-header">
+          <h2 data-i18n="weekly_summary">Weekly summary</h2>
+          <div class="week-nav">
+            <button id="prev-week" class="btn-nav">‹</button>
+            <span id="week-label">این هفته</span>
+            <button id="next-week" class="btn-nav">›</button>
+          </div>
+        </div>
+
+        <div class="stats-grid">
+          <div class="stat-card growth-card">
+            <span class="stat-label">Account growth</span>
+            <span class="stat-value" id="stat-growth">0%</span>
+          </div>
+          <div class="stat-card">
+            <span class="stat-label">Trades</span>
+            <span class="stat-value" id="stat-count">0</span>
+          </div>
+          <div class="stat-card">
+            <span class="stat-label">Win rate</span>
+            <span class="stat-value" id="stat-winrate">0%</span>
+          </div>
+          <div class="stat-card profit">
+            <span class="stat-label">Net P&L</span>
+            <span class="stat-value" id="stat-pnl">0</span>
+          </div>
+          <div class="stat-card">
+            <span class="stat-label">Best trade</span>
+            <span class="stat-value" id="stat-best">—</span>
+          </div>
+        </div>
+
+        <div class="summary-list" id="week-trades">
+          <div class="empty-state">
+            <p>No trades this week</p>
+          </div>
+        </div>
+        <h3 class="section-title">نمودار عملکرد</h3>
+        <div class="equity-wrap">
+          <canvas id="equity-canvas" width="400" height="200"></canvas>
+          <p id="equity-empty" class="empty-state" style="display:none">برای رسم نمودار، حداقل ۱ معامله ثبت کنید</p>
+        </div>
+      </section>
+
+      <!-- Analytics Tab -->
+      <section id="tab-analytics" class="tab-panel">
+        <div class="history-header">
+          <h2>آمار پیشرفته</h2>
+        </div>
+        <div class="stats-grid" id="analytics-overview">
+          <div class="stat-card"><span class="stat-label">کل معاملات</span><span class="stat-value" id="an-total">0</span></div>
+          <div class="stat-card"><span class="stat-label">Win rate</span><span class="stat-value" id="an-wr">0%</span></div>
+          <div class="stat-card"><span class="stat-label">میانگین R</span><span class="stat-value" id="an-avg-r">—</span></div>
+          <div class="stat-card profit"><span class="stat-label">سود خالص</span><span class="stat-value" id="an-pnl">0</span></div>
+          <div class="stat-card"><span class="stat-label">Profit Factor</span><span class="stat-value" id="an-pf">—</span></div>
+          <div class="stat-card"><span class="stat-label">Max Drawdown</span><span class="stat-value" id="an-dd">—</span></div>
+        </div>
+        <h3 class="section-title">بر اساس نماد</h3>
+        <div id="an-by-symbol" class="an-table"></div>
+        <h3 class="section-title">بر اساس استراتژی</h3>
+        <div id="an-by-strategy" class="an-table"></div>
+        <h3 class="section-title">بر اساس سشن</h3>
+        <div id="an-by-session" class="an-table"></div>
+        <h3 class="section-title">مقایسه ماهانه</h3>
+        <div id="an-by-month" class="an-table"></div>
+        <h3 class="section-title">بهترین / بدترین ساعت</h3>
+        <div id="an-by-hour" class="an-table"></div>
+      </section>
+
+      <!-- History Tab -->
+      <section id="tab-history" class="tab-panel">
+        <div class="history-header">
+          <h2 data-i18n="all_trades">All trades</h2>
+          <button id="clear-all" class="btn-danger-text">Clear all</button>
+        </div>
+        <div class="history-filters">
+          <input type="text" id="filter-symbol" placeholder="نماد..." />
+          <select id="filter-result">
+            <option value="">همه نتایج</option>
+            <option value="tp">تی‌پی</option>
+            <option value="sl">استاپ</option>
+            <option value="be">سر‌به‌سر</option>
+            <option value="rf">ریسک‌فری</option>
+            <option value="manual">دستی</option>
+          </select>
+          <select id="filter-strategy">
+            <option value="">همه استراتژی‌ها</option>
+            <option value="Breakout">Breakout</option>
+            <option value="Reversal">Reversal</option>
+            <option value="Scalp">Scalp</option>
+            <option value="Swing">Swing</option>
+            <option value="News">News</option>
+            <option value="Trend">Trend</option>
+            <option value="Range">Range</option>
+          </select>
+          <select id="filter-session">
+            <option value="">همه سشن‌ها</option>
+            <option value="asian">آسیا</option>
+            <option value="london">لندن</option>
+            <option value="newyork">نیویورک</option>
+            <option value="overlap">همپوشانی</option>
+          </select>
+          <input type="date" id="filter-from" title="از تاریخ" />
+          <input type="date" id="filter-to" title="تا تاریخ" />
+        </div>
+        <div class="history-list" id="history-list">
+          <div class="empty-state">
+            <p>No trades yet</p>
+          </div>
+        </div>
+      </section>
+
+
+      
+      <section id="tab-chart" class="tab-panel">
+        <div class="history-header">
+          <h2 data-i18n="chart_prices">Chart & live prices</h2>
+        </div>
+        <p class="field-hint" id="live-prices-status">قیمت‌ها از ویجت TradingView بارگذاری می‌شوند (بدون Yahoo API)</p>
+
+        <div class="live-prices" id="live-prices">
+          <div class="tv-mini" id="tv-mini-xau"></div>
+          <div class="tv-mini" id="tv-mini-dji"></div>
+          <div class="tv-mini" id="tv-mini-ixic"></div>
+          <div class="tv-mini" id="tv-mini-eur"></div>
+        </div>
+
+        <div class="tv-wrap">
+          <div class="tradingview-widget-container" style="height:100%;width:100%">
+            <div class="tradingview-widget-container__widget" id="tv_advanced_host" style="height:460px;width:100%"></div>
+          </div>
+        </div>
+        <p class="field-hint" style="margin-top:10px">
+          اگر ویجت باز نشد، اینترنت/فیلتر CloudFront مانع است. از دکمه‌های زیر در تب جدید باز کن:
+        </p>
+        <div class="symbol-chips" style="margin-top:8px">
+          <a class="chip" target="_blank" rel="noopener" href="https://www.tradingview.com/symbols/XAUUSD/">طلا</a>
+          <a class="chip" target="_blank" rel="noopener" href="https://www.tradingview.com/symbols/DJI/">داوجونز</a>
+          <a class="chip" target="_blank" rel="noopener" href="https://www.tradingview.com/symbols/NASDAQ-IXIC/">نزدک</a>
+          <a class="chip" target="_blank" rel="noopener" href="https://www.tradingview.com/symbols/EURUSD/">یورو/دلار</a>
+        </div>
+      </section>
+
+      <!-- Prop Tab -->
+            <section id="tab-prop" class="tab-panel">
+        <div class="history-header">
+          <h2 data-i18n="prop_title">SGB Prop</h2>
+        </div>
+
+        <div class="prop-subtabs">
+          <button type="button" class="prop-subtab active" data-ps="challenge" data-i18n="challenge_now">Current challenge</button>
+          <button type="button" class="prop-subtab" data-ps="archive" data-i18n="passed_failed">Passed / Failed</button>
+        </div>
+
+        <!-- Sub: challenge -->
+        <div id="prop-sub-challenge" class="prop-subpanel">
+          <div class="prop-setup risk-box">
+            <div class="risk-title"><span>انتخاب پلن و سایز</span></div>
+            <div class="form-group">
+              <label>Type پلن</label>
+              <div class="plan-toggle">
+                <button type="button" class="plan-btn active" data-plan="A" id="plan-btn-A">
+                  <strong>پلن A</strong>
+                  <span>تارگت ۸٪ → ۴٪ · مهلت ۳۰/۶۰ Day · حداقل ۵ Day</span>
+                </button>
+                <button type="button" class="plan-btn" data-plan="B" id="plan-btn-B">
+                  <strong>پلن B</strong>
+                  <span>تارگت ۱۰٪ → ۵٪ · بدون محدودیت زمان · حداقل ۳ Day</span>
+                </button>
+              </div>
+              <select id="prop-class" class="hidden-select" hidden>
+                <option value="A" selected>A</option>
+                <option value="B">B</option>
+              </select>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label>مقدار پراپ تهیه‌شده ($)</label>
+                <select id="prop-size">
+                  <option value="1000">1,000</option>
+                  <option value="2000">2,000</option>
+                  <option value="5000">5,000</option>
+                  <option value="10000" selected>10,000</option>
+                  <option value="25000">25,000</option>
+                  <option value="50000">50,000</option>
+                  <option value="100000">100,000</option>
+                  <option value="200000">200,000</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>مرحله</label>
+                <select id="prop-phase">
+                  <option value="1">مرحله ۱</option>
+                  <option value="2">مرحله ۲</option>
+                  <option value="funded">فاند شده</option>
+                </select>
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label>Date شروع</label>
+                <input type="date" id="prop-start" />
+              </div>
+              <div class="form-group">
+                <label>پراپ فرم</label>
+                <select id="prop-firm">
+                  <option value="SGB" selected>سرمایه‌گذار برتر</option>
+                  <option value="other">سایر</option>
+                </select>
+              </div>
+            </div>
+            <div id="prop-plan-preview" class="field-hint"></div>
+            <button type="button" id="btn-save-prop" class="btn-primary">ذخیره پلن و شروع</button>
+          </div>
+
+          <div id="prop-timer-box" class="prop-timer-box">
+            <div class="prop-timer-title">تایمر چالش</div>
+            <div id="prop-timer-text" class="prop-timer-text">—</div>
+            <div id="prop-timer-sub" class="prop-timer-sub"></div>
+          </div>
+
+          <div class="prop-top-actions">
+            <button type="button" id="btn-pass-phase1" class="btn-next-phase">پاس مرحله ۱ ✓</button>
+            <button type="button" id="btn-pass-phase2" class="btn-next-phase hidden">پاس مرحله ۲ ✓</button>
+            <button type="button" id="btn-pass-funded" class="btn-next-phase hidden">برداشت از حساب</button>
+            <button type="button" id="btn-prop-fail" class="btn-fail">فیل شده ✕</button>
+          </div>
+          <div id="phase-trades-hint" class="field-hint" style="margin-bottom:10px"></div>
+
+          <div id="funded-panel" class="funded-panel hidden">
+            <h3 class="section-title">برداشت از حساب فاند</h3>
+            <div class="form-row">
+              <div class="form-group">
+                <label>مبلغ برداشت ($)</label>
+                <input type="number" id="withdraw-amount" step="any" placeholder="مثلاً 200" />
+              </div>
+              <div class="form-group">
+                <label>ریفاند ($)</label>
+                <input type="number" id="refund-amount" step="any" value="0" />
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label>سایر ($)</label>
+                <input type="number" id="other-amount" step="any" value="0" />
+              </div>
+              <div class="form-group">
+                <label data-i18n="label_note">Note</label>
+                <input type="text" id="withdraw-note" placeholder="برداشت اول" />
+              </div>
+            </div>
+            <button type="button" id="btn-record-withdraw" class="btn-primary">ثبت برداشت</button>
+            <button type="button" id="btn-close-prop" class="btn-fail" style="margin-top:10px;width:100%">بستن پراپ و ذخیره در پاس‌شده‌ها</button>
+            <div id="withdraw-list" class="prop-archive-list" style="margin-top:12px"></div>
+          </div>
+
+          <div id="prop-phase-done" class="prop-done-banner hidden">
+            <strong>این مرحله به اتمام رسید 🎉</strong>
+            <p id="prop-done-text">تارگت تکمیل شده.</p>
+            <button type="button" id="btn-prop-next-2" class="btn-primary">رفتن به مرحله بعدی</button>
+          </div>
+
+          <h3 class="section-title">برایند پراپ</h3>
+          <div class="stats-grid" style="margin-top:8px">
+            <div class="stat-card"><span class="stat-label">سود/ضرر خالص</span><span class="stat-value" id="prop-net">0</span></div>
+            <div class="stat-card"><span class="stat-label">Win rate</span><span class="stat-value" id="prop-winrate">0%</span></div>
+            <div class="stat-card"><span class="stat-label">Trades</span><span class="stat-value" id="prop-count">0</span></div>
+            <div class="stat-card"><span class="stat-label">Best trade</span><span class="stat-value" id="prop-best">—</span></div>
+            <div class="stat-card"><span class="stat-label">پیشرفت تارگت</span><span class="stat-value" id="prop-progress">0%</span></div>
+            <div class="stat-card"><span class="stat-label">فاصله تا تارگت</span><span class="stat-value" id="prop-to-target">—</span></div>
+            <div class="stat-card"><span class="stat-label">Day معاملاتی</span><span class="stat-value" id="prop-days">0</span></div>
+            <div class="stat-card"><span class="stat-label">امDay</span><span class="stat-value" id="prop-today">0</span></div>
+          </div>
+          <div class="equity-wrap prop-summary-extra">
+            <canvas id="prop-equity-canvas" width="400" height="180"></canvas>
+            <p id="prop-equity-empty" class="empty-state" style="display:none">برای نمودار، معامله پراپ ثبت کنید</p>
+          </div>
+
+          <!-- پنل حرفه‌ای سرمایه‌گذار برتر -->
+          <div class="investor-panel pro-investor" id="prop-investor-panel">
+            <div class="inv-top">
+              <div class="inv-brand">
+                <div class="inv-brand-mark">BI</div>
+                <div>
+                  <p class="inv-eyebrow">Best Investor Desk</p>
+                  <h3>داشبورد سرمایه‌گذار برتر</h3>
+                  <p class="inv-sub" id="inv-phase-label">تحلیل نهادی عملکرد چالش پراپ</p>
+                </div>
+              </div>
+              <div class="inv-score-ring-wrap" id="inv-score-badge">
+                <svg class="inv-score-ring" viewBox="0 0 120 120" width="110" height="110">
+                  <circle class="inv-ring-bg" cx="60" cy="60" r="52" />
+                  <circle class="inv-ring-fg" id="inv-ring-fg" cx="60" cy="60" r="52" />
+                </svg>
+                <div class="inv-score-center">
+                  <strong id="inv-score">—</strong>
+                  <span id="inv-rank">رتبه</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="inv-tier-bar">
+              <div class="inv-tier" data-tier="bronze">برنزی</div>
+              <div class="inv-tier" data-tier="silver">نقره‌ای</div>
+              <div class="inv-tier" data-tier="gold">طلایی</div>
+              <div class="inv-tier" data-tier="elite">نخبه</div>
+            </div>
+
+            <div class="inv-hero-metrics">
+              <div class="inv-hero-card">
+                <span>بازده خالص</span>
+                <strong id="inv-net-pnl">—</strong>
+                <small id="inv-net-pct">نسبت به سایز حساب</small>
+              </div>
+              <div class="inv-hero-card">
+                <span>وین‌ریت</span>
+                <strong id="inv-wr">—</strong>
+                <small id="inv-wr-meta">نسبت برد</small>
+              </div>
+              <div class="inv-hero-card">
+                <span>Profit Factor</span>
+                <strong id="inv-pf">—</strong>
+                <small>کیفیت سود</small>
+              </div>
+              <div class="inv-hero-card">
+                <span>پایداری</span>
+                <strong id="inv-consistency">—</strong>
+                <small>روزهای مثبت</small>
+              </div>
+            </div>
+
+            <div class="investor-kpis inv-kpis-pro">
+              <div class="inv-kpi"><span>میانگین برد</span><strong id="inv-avg-win">—</strong></div>
+              <div class="inv-kpi"><span>میانگین باخت</span><strong id="inv-avg-loss">—</strong></div>
+              <div class="inv-kpi"><span>نسبت برد/باخت</span><strong id="inv-wl">—</strong></div>
+              <div class="inv-kpi"><span>حداکثر دراودان</span><strong id="inv-maxdd">—</strong></div>
+              <div class="inv-kpi"><span>معاملات / روز</span><strong id="inv-tpd">—</strong></div>
+              <div class="inv-kpi"><span>میانگین R:R</span><strong id="inv-avg-rr">—</strong></div>
+              <div class="inv-kpi"><span>تعداد معاملات</span><strong id="inv-trades">—</strong></div>
+              <div class="inv-kpi"><span>انتظار ریاضی (EV)</span><strong id="inv-ev">—</strong></div>
+            </div>
+
+            <div class="inv-progress-section">
+              <div class="inv-prog-item">
+                <div class="inv-prog-head"><span>کیفیت ورود</span><span id="inv-q-entry">—</span></div>
+                <div class="inv-prog-track"><div class="inv-prog-fill" id="inv-bar-entry"></div></div>
+              </div>
+              <div class="inv-prog-item">
+                <div class="inv-prog-head"><span>مدیریت ریسک</span><span id="inv-q-risk">—</span></div>
+                <div class="inv-prog-track"><div class="inv-prog-fill risk" id="inv-bar-risk"></div></div>
+              </div>
+              <div class="inv-prog-item">
+                <div class="inv-prog-head"><span>ثبات روانی</span><span id="inv-q-mental">—</span></div>
+                <div class="inv-prog-track"><div class="inv-prog-fill mental" id="inv-bar-mental"></div></div>
+              </div>
+            </div>
+
+            <div class="investor-grid">
+              <div class="inv-block">
+                <h4>🏆 عملکرد استراتژی‌ها</h4>
+                <div id="inv-by-strategy" class="inv-table"></div>
+              </div>
+              <div class="inv-block">
+                <h4>📊 عملکرد نمادها</h4>
+                <div id="inv-by-symbol" class="inv-table"></div>
+              </div>
+              <div class="inv-block">
+                <h4>🎯 توزیع نتایج</h4>
+                <div id="inv-results" class="inv-table"></div>
+              </div>
+              <div class="inv-block inv-block-insights">
+                <h4>🧠 نظر میز سرمایه‌گذار</h4>
+                <ul id="inv-insights" class="inv-insights"></ul>
+              </div>
+            </div>
+          </div>
+
+          
+          <!-- تقویم معاملاتی شمسی پراپ -->
+          <div class="prop-cal-wrap" id="prop-trading-calendar">
+            <div class="prop-cal-header">
+              <div>
+                <p class="planner-eyebrow">Trading Calendar</p>
+                <h3>تقویم معاملاتی (شمسی)</h3>
+                <p class="field-hint">هر روز مجموع سود/ضرر معاملات همان روز — سبز سود، قرمز ضرر</p>
+              </div>
+              <div class="prop-cal-nav">
+                <button type="button" id="prop-cal-prev" class="pc-icon-btn" title="ماه قبل">‹</button>
+                <strong id="prop-cal-title">—</strong>
+                <button type="button" id="prop-cal-next" class="pc-icon-btn" title="ماه بعد">›</button>
+              </div>
+            </div>
+            <div class="prop-cal-weekdays">
+              <span>ش</span><span>ی</span><span>د</span><span>س</span><span>چ</span><span>پ</span><span>ج</span>
+            </div>
+            <div class="prop-cal-grid" id="prop-cal-grid"></div>
+            <div class="prop-cal-legend">
+              <span class="leg profit">سود</span>
+              <span class="leg loss">ضرر</span>
+              <span class="leg flat">صفر / بدون معامله</span>
+            </div>
+            <div id="prop-cal-day-detail" class="prop-cal-detail hidden"></div>
+          </div>
+
+<div class="prop-weekly-analysis" id="prop-weekly-analysis">
+            <div class="pwa-header">
+              <div>
+                <p class="planner-eyebrow">Weekly Review</p>
+                <h3 data-i18n="prop_weekly">آنالیز هفتگی Prop journal</h3>
+                <p class="field-hint" id="pwa-range">معاملات این هفته</p>
+              </div>
+              <div class="pwa-nav">
+                <button type="button" id="pwa-prev" class="pc-icon-btn">‹</button>
+                <button type="button" id="pwa-next" class="pc-icon-btn">›</button>
+              </div>
+            </div>
+
+            <div class="pwa-kpis">
+              <div class="pwa-kpi">
+                <span>سود / ضرر هفته</span>
+                <strong id="pwa-pnl">0 $</strong>
+                <small id="pwa-pnl-pct">0%</small>
+              </div>
+              <div class="pwa-kpi">
+                <span>وین‌ریت هفته</span>
+                <strong id="pwa-wr">0%</strong>
+                <small id="pwa-count">0 معامله</small>
+              </div>
+              <div class="pwa-kpi best">
+                <span>Best trade</span>
+                <strong id="pwa-best">—</strong>
+                <small id="pwa-best-meta">—</small>
+              </div>
+              <div class="pwa-kpi">
+                <span>پرافیت فکتور</span>
+                <strong id="pwa-pf">—</strong>
+                <small id="pwa-pf-meta">سود ناخالص / ضرر ناخالص</small>
+              </div>
+            </div>
+
+            <div class="pwa-grid">
+              <div class="pwa-card">
+                <h4>Symbolها · وین‌ریت و سود</h4>
+                <div id="pwa-symbols" class="pwa-table"></div>
+              </div>
+              <div class="pwa-card">
+                <h4>لانگ / شورت</h4>
+                <div id="pwa-sides" class="pwa-sides"></div>
+              </div>
+            </div>
+
+            <div class="pwa-card" style="margin-top:12px">
+              <h4>گراف سود هفتگی ($)</h4>
+              <div class="chart-shell">
+                <canvas id="pwa-canvas" width="400" height="160"></canvas>
+              </div>
+            </div>
+          </div>
+          <div class="prop-limits risk-box" style="margin-top:12px">
+            <div class="risk-title"><span>قوانین</span></div>
+            <div class="prop-limit-row"><span>تارگت</span><span id="prop-rule-target">—</span></div>
+            <div class="prop-limit-row"><span>حد Dayانه ۵٪</span><span id="prop-rule-daily">—</span></div>
+            <div class="prop-limit-row"><span>حد کلی ۱۲٪</span><span id="prop-rule-max">—</span></div>
+            <div class="prop-limit-row"><span>حداقل Day</span><span id="prop-rule-mindays">—</span></div>
+            <div class="prop-bar-wrap"><div class="prop-bar-label">پیشرفت تارگت</div><div class="prop-bar"><div class="prop-bar-fill" id="prop-bar-fill"></div></div></div>
+            <div class="prop-bar-wrap"><div class="prop-bar-label">دراودان</div><div class="prop-bar danger"><div class="prop-bar-fill" id="prop-dd-fill"></div></div></div>
+            <p class="field-hint" id="prop-advice">پس از ذخیره پلن، راهنما اینجا می‌آید.</p>
+          </div>
+
+          <div class="prop-journal-panel">
+            <div class="prop-journal-header">
+              <div>
+                <h3 class="section-title" style="margin:0" data-i18n="prop_journal">Prop journal</h3>
+                <p class="field-hint" style="margin:4px 0 0">Separate from main journal</p>
+              </div>
+              <span id="prop-journal-badge" class="prop-journal-badge">مرحله ۱</span>
+            </div>
+            <form id="prop-trade-form" class="trade-form">
+              <div class="form-group">
+                <label data-i18n="label_symbol">Symbol</label>
+                <input type="text" id="prop-symbol" placeholder="XAUUSD" required />
+                <div class="symbol-chips">
+                  <button type="button" class="chip prop-sym-chip" data-sym="XAUUSD">طلا</button>
+                  <button type="button" class="chip prop-sym-chip" data-sym="EURUSD">یورو</button>
+                  <button type="button" class="chip prop-sym-chip" data-sym="GBPUSD">پوند</button>
+                  <button type="button" class="chip prop-sym-chip" data-sym="BTCUSDT">بیت‌کوین</button>
+                  <button type="button" class="chip prop-sym-chip" data-sym="NAS100">نزدک</button>
+                </div>
+              </div>
+              <div class="form-row">
+                <div class="form-group">
+                  <label>جهت</label>
+                  <div class="direction-toggle">
+                    <button type="button" class="prop-dir-btn long active" data-dir="long">لانگ</button>
+                    <button type="button" class="prop-dir-btn short" data-dir="short">شورت</button>
+                  </div>
+                </div>
+                <div class="form-group">
+                  <label data-i18n="label_date">Date</label>
+                  <input type="date" id="prop-trade-date" required />
+                </div>
+              </div>
+              <div class="form-row">
+                <div class="form-group"><label>ورود</label><input type="number" id="prop-entry" step="any" required /></div>
+                <div class="form-group"><label>لات</label><input type="number" id="prop-lot" step="0.01" placeholder="0.01" /></div>
+              </div>
+              <div class="form-row">
+                <div class="form-group"><label>SL</label><input type="number" id="prop-sl" step="any" /></div>
+                <div class="form-group"><label>TP</label><input type="number" id="prop-tp" step="any" /></div>
+              </div>
+              <div id="prop-risk-preview" class="prop-risk-preview">
+                <div class="prp-item loss">
+                  <span>ضرر احتمالی (SL)</span>
+                  <strong id="prop-est-sl">—</strong>
+                </div>
+                <div class="prp-item profit">
+                  <span>سود احتمالی (TP)</span>
+                  <strong id="prop-est-tp">—</strong>
+                </div>
+                <div class="prp-item rr">
+                  <span>نسبت R:R</span>
+                  <strong id="prop-est-rr">—</strong>
+                </div>
+              </div>
+              <p class="field-hint" id="prop-pnl-hint">با انتخاب TP یا SL مقدار سود/ضرر به‌صورت خودکار پر می‌شود (قابل ویرایش)</p>
+              <div class="form-group">
+                <label data-i18n="label_result">Result</label>
+                <div class="result-toggle">
+                  <button type="button" class="prop-res-btn" data-res="tp">TP</button>
+                  <button type="button" class="prop-res-btn" data-res="sl">SL</button>
+                  <button type="button" class="prop-res-btn" data-res="manual">دستی</button>
+                  <button type="button" class="prop-res-btn" data-res="rf">RF</button>
+                </div>
+              </div>
+              <div class="form-row">
+                <div class="form-group"><label>سود/ضرر</label><input type="number" id="prop-pnl" step="any" /></div>
+                <div class="form-group"><label data-i18n="label_commission">Commission</label><input type="number" id="prop-commission" step="any" value="0" /></div>
+              </div>
+              <div class="form-group strategy-box">
+                <label>استراتژی</label>
+                <div class="strategy-select-row">
+                  <select id="prop-strategy-select">
+                    <option value="">— انتخاب استراتژی —</option>
+                  </select>
+                  <button type="button" id="btn-prop-strategy-delete" class="btn-danger-text" title="حذف">حذف</button>
+                </div>
+                <div class="strategy-add-row">
+                  <input type="text" id="prop-strategy-new-name" placeholder="نام استراتژی جدید" maxlength="60" />
+                  <button type="button" id="btn-prop-strategy-save" class="btn-secondary">ذخیره</button>
+                </div>
+                <p class="field-hint">استراتژی‌ها بین ژورنال اصلی و پراپ مشترک‌اند</p>
+              </div>
+              <div class="form-group"><label data-i18n="label_reason">Entry reason</label><input type="text" id="prop-reason" /></div>
+              <div class="form-group"><label data-i18n="label_notes">Notes</label><textarea id="prop-notes" rows="2"></textarea></div>
+                            <div class="form-group">
+                <label>عکس‌های معامله (تا ۳ عکس — اختیاری)</label>
+                <div class="multi-image-row" id="prop-image-slots">
+                  <div class="image-slot" data-slot="0">
+                    <input type="file" class="slot-file" accept="image/*" hidden />
+                    <div class="slot-placeholder">📷<span>عکس ۱</span></div>
+                    <img class="slot-preview hidden" alt="" />
+                    <button type="button" class="slot-remove hidden">✕</button>
+                  </div>
+                  <div class="image-slot" data-slot="1">
+                    <input type="file" class="slot-file" accept="image/*" hidden />
+                    <div class="slot-placeholder">📷<span>عکس ۲</span></div>
+                    <img class="slot-preview hidden" alt="" />
+                    <button type="button" class="slot-remove hidden">✕</button>
+                  </div>
+                  <div class="image-slot" data-slot="2">
+                    <input type="file" class="slot-file" accept="image/*" hidden />
+                    <div class="slot-placeholder">📷<span>عکس ۳</span></div>
+                    <img class="slot-preview hidden" alt="" />
+                    <button type="button" class="slot-remove hidden">✕</button>
+                  </div>
+                </div>
+              </div>
+
+              <button type="submit" class="btn-primary">ثبت در Prop journal</button>
+            </form>
+            <div class="prop-history-toolbar">
+              <h3 class="section-title" style="margin:0">معاملات این مرحله</h3>
+              <button type="button" id="btn-prop-pdf" class="btn-secondary">خروجی PDF ژورنال پراپ</button>
+            </div>
+            <div id="prop-history-list" class="history-list"></div>
+            <div id="prop-prev-phase-wrap" class="prop-prev-phase hidden">
+              <h3 class="section-title" id="prop-prev-phase-title">مرحله ۱ (ذخیره‌شده)</h3>
+              <div id="prop-prev-phase-list" class="history-list"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Sub: archive -->
+        <div id="prop-sub-archive" class="prop-subpanel hidden">
+          <h3 class="section-title">پراپ‌های فاند / پاس‌شده</h3>
+          <div id="prop-passed-list" class="prop-archive-list">
+            <div class="empty-state"><p>هنوز پراپی پاس نشده</p></div>
+          </div>
+          <h3 class="section-title">پراپ‌های فیل‌شده</h3>
+          <div id="prop-failed-list" class="prop-archive-list">
+            <div class="empty-state"><p>پراپ فیل‌شده‌ای نیست</p></div>
+          </div>
+        </div>
+      </section>
+
+
+    
+
+
+            
+
+
+      <section id="tab-games" class="tab-panel">
+        <div class="games-hero">
+          <div>
+            <p class="planner-eyebrow">Play Zone</p>
+            <h2>بخش بازی</h2>
+            <p class="field-hint">چند بازی سبک برای ریست ذهن بین معاملات</p>
+          </div>
+        </div>
+        <div class="games-menu" id="games-menu">
+          <button type="button" class="game-card" data-game="memory">
+            <span class="game-emoji">🃏</span>
+            <strong>حافظه نمادها</strong>
+            <span>کارت‌های جفت را پیدا کن</span>
+          </button>
+          <button type="button" class="game-card" data-game="reaction">
+            <span class="game-emoji">⚡</span>
+            <strong>واکنش سریع</strong>
+            <span>سرعت کلیک خودت را بسنج</span>
+          </button>
+          <button type="button" class="game-card" data-game="guess">
+            <span class="game-emoji">🔢</span>
+            <strong>حدس عدد</strong>
+            <span>عددی بین ۱ تا ۱۰۰</span>
+          </button>
+          <button type="button" class="game-card" data-game="ttt">
+            <span class="game-emoji">⭕</span>
+            <strong>دوز</strong>
+            <span>بازی با رایانه</span>
+          </button>
+          <button type="button" class="game-card" data-game="hokm">
+            <span class="game-emoji">🃏</span>
+            <strong>حکم</strong>
+            <span>تو + یار در برابر دو حریف</span>
+          </button>
+          <button type="button" class="game-card" data-game="billiards">
+            <span class="game-emoji">🎱</span>
+            <strong>بیلیارد حرفه‌ای</strong>
+            <span>ضربه، زاویه، قدرت و پاکت توپ</span>
+          </button>
+          <button type="button" class="game-card" data-game="typing">
+            <span class="game-emoji">⌨️</span>
+            <strong>مسابقه تایپ</strong>
+            <span>تو در برابر ربات، با کیبورد تعاملی</span>
+          </button>
+        </div>
+
+        <div id="game-stage" class="game-stage hidden">
+          <div class="game-stage-bar">
+            <button type="button" id="game-back" class="btn-secondary">← بازگشت به منو</button>
+            <strong id="game-stage-title">—</strong>
+            <span id="game-stage-score" class="game-score"> </span>
+          </div>
+          <div id="game-stage-body" class="game-stage-body"></div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- Trade Detail Modal -->
+  <div id="modal" class="modal hidden">
+    <div class="modal-backdrop"></div>
+    <div class="modal-content">
+      <button class="modal-close" id="modal-close">✕</button>
+      <div id="modal-body"></div>
+    </div>
+  </div>
+
+  <!-- Android Install Banner -->
+  <div id="install-banner" class="install-banner hidden">
+    <div class="install-banner-content">
+      <div class="install-banner-icon">
+        <div class="mini-candle green"></div>
+        <div class="mini-candle red"></div>
+      </div>
+      <div class="install-banner-text">
+        <strong>نصب All In One</strong>
+        <span>AIO را به صفحه اصلی اضافه کنید</span>
+      </div>
+      <button id="btn-install" class="btn-install">نصب</button>
+      <button id="btn-install-close" class="btn-install-close">✕</button>
+    </div>
+  </div>
+
+
+
+  <!-- Bug Report Modal -->
+  <div id="bug-modal" class="bug-modal hidden">
+    <div class="bug-modal-backdrop" id="bug-modal-backdrop"></div>
+    <div class="bug-modal-panel">
+      <div class="bug-modal-header">
+        <div>
+          <p class="bug-eyebrow">Bug Desk</p>
+          <h3>گزارش باگ / پیشنهاد</h3>
+        </div>
+        <button type="button" id="bug-modal-close" class="bug-close">✕</button>
+      </div>
+      <p class="bug-hint">باگ را بنویس؛ می‌توانی با ایمیل بفرستی، کپی کنی، یا اینجا ذخیره شود.</p>
+      <div class="bug-form">
+        <div class="form-group">
+          <label>ایمیل دریافت گزارش (اختیاری)</label>
+          <input type="email" id="bug-dest-email" placeholder="مثلاً you@gmail.com" />
+        </div>
+        <div class="bug-tg-box">
+          <p class="bug-tg-title">ارسال به تلگرام ادمین</p>
+          <p class="bug-hint" style="margin-bottom:8px">
+            گزارش مستقیم برای <b>@FX_Jwad</b> ارسال می‌شود (تنظیمات از قبل داخل برنامه است).
+            اگر اینترنت تلگرام بسته باشد، از <b>کپی متن</b> یا <b>ایمیل</b> استفاده کن.
+          </p>
+          <button type="button" id="bug-tg-test" class="btn-secondary" style="width:100%;margin:0 0 8px">تست ارسال به تلگرام</button>
+          <p class="field-hint" id="bug-tg-status">وضعیت: آماده</p>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>بخش</label>
+            <select id="bug-section">
+              <option value="journal">ژورنال</option>
+              <option value="prop">پراپ</option>
+              <option value="theme">تم / ظاهر</option>
+              <option value="data">ذخیره داده</option>
+              <option value="other">سایر</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>شدت</label>
+            <select id="bug-severity">
+              <option value="low">کم</option>
+              <option value="medium" selected>متوسط</option>
+              <option value="high">زیاد</option>
+              <option value="critical">بحرانی</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>عنوان</label>
+          <input type="text" id="bug-title" maxlength="120" placeholder="خلاصه مشکل" />
+        </div>
+        <div class="form-group">
+          <label>توضیحات</label>
+          <textarea id="bug-desc" rows="4" placeholder="چه کاری کردی؟ چه اتفاقی افتاد؟ انتظار چه بود؟"></textarea>
+        </div>
+        <div class="bug-actions">
+          <button type="button" id="bug-btn-save" class="btn-secondary">ذخیره محلی</button>
+          <button type="button" id="bug-btn-copy" class="btn-secondary">کپی متن</button>
+          <button type="button" id="bug-btn-email" class="btn-secondary">ایمیل</button>
+          <button type="button" id="bug-btn-telegram" class="btn-primary">ارسال به تلگرام</button>
+        </div>
+      </div>
+      <div class="bug-history">
+        <h4>گزارش‌های ذخیره‌شده</h4>
+        <div id="bug-list" class="bug-list"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast -->
+  <div id="toast" class="toast hidden"></div>
+
+  <script src="app.js" defer></script>
+</body>
+</html>
