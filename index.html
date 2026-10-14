@@ -47,30 +47,36 @@
   </div>
   <div id="splash" class="splash">
     <div class="splash-bg">
+      <div class="splash-particles" id="splash-particles"></div>
       <div class="splash-orb o1"></div>
       <div class="splash-orb o2"></div>
       <div class="splash-orb o3"></div>
       <div class="splash-ring r1"></div>
       <div class="splash-ring r2"></div>
+      <div class="splash-ring r3"></div>
+      <div class="splash-grid"></div>
     </div>
     <div class="splash-content">
-      <div class="aio-mark theme-logo" data-logo="AIO">
-        <span class="aio-letter" style="--i:0">A</span>
-        <span class="aio-letter" style="--i:1">I</span>
-        <span class="aio-letter" style="--i:2">O</span>
+      <div class="splash-logo-wrap">
+        <div class="aio-mark theme-logo splash-aio">
+          <span class="aio-letter" style="--i:0">A</span>
+          <span class="aio-letter" style="--i:1">I</span>
+          <span class="aio-letter" style="--i:2">O</span>
+        </div>
+        <div class="splash-pulse"></div>
       </div>
-      <div class="aio-line"></div>
+      <div class="aio-line splash-line"></div>
       <p class="splash-title">All In One</p>
-      <p class="splash-sub" data-i18n="splash_sub">Journal · Prop · Planner · Finance</p>
+      <p class="splash-sub">ژورنال · پراپ · قیمت</p>
       <div class="splash-loader modern-loader">
+        <div class="loader-bar"><div class="loader-bar-fill" id="splash-progress"></div></div>
         <div class="loader-ring"></div>
         <div class="loader-ring delay"></div>
         <div class="loader-core">AIO</div>
       </div>
-      <button type="button" id="splash-enter" class="splash-enter-btn" data-i18n="enter_app">Enter App</button>
+      <p class="splash-status" id="splash-status">در حال بارگذاری…</p>
     </div>
   </div>
-
 
   <!-- Professional Login Screen -->
   <div id="auth-login-screen" class="login-screen hidden">
@@ -83,7 +89,7 @@
       <div class="login-brand">
         <div class="aio-logo theme-logo" aria-label="AIO"><span>A</span><span>I</span><span>O</span></div>
         <h1>All In One</h1>
-        <p class="login-tagline">ژورنال · پراپ · بازی · هوش مصنوعی</p>
+        <p class="login-tagline">ژورنال · پراپ · قیمت</p>
       </div>
       <div class="login-card pro-login-card">
         <div class="login-tabs">
@@ -150,7 +156,7 @@
       <div class="mode-brand">
         <div class="aio-logo theme-logo" id="header-aio-logo" aria-label="AIO"><span>A</span><span>I</span><span>O</span></div>
         <h1 class="mode-brand-title">All In One</h1>
-        <p class="mode-brand-sub">ژورنال · پراپ · بازی</p>
+        <p class="mode-brand-sub">ژورنال · پراپ · قیمت</p>
       </div>
       <div class="mode-cards">
         <h2 class="mode-title" data-i18n="mode_start">Where do you start?</h2>
@@ -167,11 +173,11 @@
             <strong data-i18n="mode_prop">SGB Prop</strong>
             <span data-i18n="mode_prop_sub">Prop challenge management</span>
           </button>
-          <button type="button" id="btn-mode-games" class="mode-card games">
+          <button type="button" id="btn-mode-prices" class="mode-card games">
             <div class="mode-card-glow"></div>
-            <div class="mode-icon">🎮</div>
-            <strong>بازی</strong>
-            <span>چند بازی ساده برای استراحت ذهن</span>
+            <div class="mode-icon">💱</div>
+            <strong>قیمت‌ها</strong>
+            <span>دلار، طلا، سکه و رمزارز به تومان</span>
           </button>
         </div>
         <p id="motivational-quote" class="motivational-quote"></p>
@@ -195,9 +201,7 @@
         <div class="workspace-switch" id="workspace-switch" title="Choose section">
           <button type="button" class="ws-btn active" data-ws="journal" data-i18n="ws_journal">Journal</button>
           <button type="button" class="ws-btn" data-ws="prop" data-i18n="ws_prop">Prop</button>
-          <button type="button" class="ws-btn" data-ws="games">بازی</button>
-          <button type="button" class="ws-btn" data-ws="ai">AI</button>
-          <button type="button" class="ws-btn" data-ws="chat">چت</button>
+          <button type="button" class="ws-btn" data-ws="prices">قیمت</button>
         </div>
         <button type="button" id="btn-header-backup" class="fs-toggle" title="پشتیبان داده">💾</button>
         <div class="theme-wrap">
@@ -216,11 +220,7 @@
             <button type="button" class="theme-opt" data-theme="amber"><span class="swatch s-amber"></span> Amber</button>
           </div>
         </div>
-        <button type="button" id="btn-fullscreen" class="fs-toggle" title="تمام‌صفحه (F11)">⛶</button>
         <span id="prop-medal" class="prop-medal hidden" title="Prop passed">🏅</span>
-        <button type="button" id="trader-mood" class="trader-mood" title="Trader mood">
-          <span id="mood-face" class="mood-face">😐</span>
-        </button>
         <div class="user-menu-wrap">
           <div id="user-menu" class="user-menu hidden">
             <p class="lang-menu-title" data-i18n="lang_menu_title">Language</p>
@@ -264,7 +264,7 @@
         <div id="notif-bell-wrap" class="notif-bell-wrap">
           <button type="button" id="btn-notif" class="fs-toggle" title="اعلان‌ها">🔔</button>
           <span id="notif-badge" class="notif-badge hidden">0</span>
-          <div id="notif-panel" class="notif-panel hidden"></div>
+          <div id="notif-panel" class="notif-panel hidden" style="display:none"></div>
         </div>
 
       </div>
@@ -707,14 +707,13 @@
 
         <div class="live-prices" id="live-prices">
           <div class="tv-mini" id="tv-mini-xau"></div>
-          <div class="tv-mini" id="tv-mini-dji"></div>
           <div class="tv-mini" id="tv-mini-ixic"></div>
           <div class="tv-mini" id="tv-mini-eur"></div>
         </div>
 
-        <div class="tv-wrap">
+        <div class="tv-wrap tv-wrap-large">
           <div class="tradingview-widget-container" style="height:100%;width:100%">
-            <div class="tradingview-widget-container__widget" id="tv_advanced_host" style="height:460px;width:100%"></div>
+            <div class="tradingview-widget-container__widget" id="tv_advanced_host" style="height:680px;width:100%"></div>
           </div>
         </div>
         <p class="field-hint" style="margin-top:10px">
@@ -722,7 +721,6 @@
         </p>
         <div class="symbol-chips" style="margin-top:8px">
           <a class="chip" target="_blank" rel="noopener" href="https://www.tradingview.com/symbols/XAUUSD/">طلا</a>
-          <a class="chip" target="_blank" rel="noopener" href="https://www.tradingview.com/symbols/DJI/">داوجونز</a>
           <a class="chip" target="_blank" rel="noopener" href="https://www.tradingview.com/symbols/NASDAQ-IXIC/">نزدک</a>
           <a class="chip" target="_blank" rel="noopener" href="https://www.tradingview.com/symbols/EURUSD/">یورو/دلار</a>
         </div>
@@ -972,8 +970,8 @@
             <div class="prop-cal-header">
               <div>
                 <p class="planner-eyebrow">Trading Calendar</p>
-                <h3>تقویم معاملاتی (شمسی)</h3>
-                <p class="field-hint">هر روز مجموع سود/ضرر معاملات همان روز — سبز سود، قرمز ضرر</p>
+                <h3>تقویم معاملاتی ماهانه (شمسی)</h3>
+                <p class="field-hint">نمای کامل ماه · داخل هر روز مجموع سود یا ضرر همان روز نوشته می‌شود</p>
               </div>
               <div class="prop-cal-nav">
                 <button type="button" id="prop-cal-prev" class="pc-icon-btn" title="ماه قبل">‹</button>
@@ -1201,55 +1199,127 @@
             
 
 
-      <section id="tab-games" class="tab-panel">
-        <div class="games-hero">
-          <div>
-            <p class="planner-eyebrow">Play Zone</p>
-            <h2>بخش بازی</h2>
-            <p class="field-hint">چند بازی سبک برای ریست ذهن بین معاملات</p>
+      
+      <section id="tab-prices" class="tab-panel">
+        <div class="prices-hero">
+          <div class="prices-hero-text">
+            <div class="prices-live-row">
+              <span class="prices-badge"><span class="prices-live-dot"></span> LIVE</span>
+              <span id="prices-auto-label" class="prices-auto-label">بروزرسانی خودکار هر ۳۰ ثانیه</span>
+            </div>
+            <h2>مرکز قیمت‌ها</h2>
+            <p>بازار آزاد ایران · همه قیمت‌ها به تومان</p>
+          </div>
+          <div class="prices-hero-actions">
+            <div class="prices-countdown-wrap" title="ثانیه تا بروزرسانی بعدی">
+              <svg class="prices-countdown-ring" viewBox="0 0 36 36">
+                <path class="prices-countdown-bg" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"/>
+                <path id="prices-countdown-arc" class="prices-countdown-fg" stroke-dasharray="100, 100" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"/>
+              </svg>
+              <span id="prices-countdown" class="prices-countdown-num">۳۰</span>
+            </div>
+            <span id="prices-updated" class="prices-updated">—</span>
+            <button type="button" id="btn-prices-refresh" class="prices-refresh-btn">
+              <span class="prices-refresh-icon">↻</span> بروزرسانی
+            </button>
           </div>
         </div>
-        <div class="games-menu" id="games-menu">
-          <button type="button" class="game-card" data-game="reaction">
-            <span class="game-emoji">⚡</span>
-            <strong>واکنش سریع</strong>
-            <span>سرعت کلیک خودت را بسنج</span>
+
+        <div id="prices-status" class="prices-status">در حال دریافت قیمت‌ها…</div>
+
+        <div class="prices-section-head">
+          <h3 class="prices-cat-title">💱 ارزها</h3>
+          <span class="prices-section-hint">تومان</span>
+        </div>
+        <div class="prices-grid" id="prices-fx"></div>
+
+        <div class="prices-section-head">
+          <h3 class="prices-cat-title">🥇 طلا و سکه</h3>
+          <span class="prices-section-hint">تومان</span>
+        </div>
+        <div class="prices-grid" id="prices-metals"></div>
+
+        <div class="prices-section-head">
+          <h3 class="prices-cat-title">🪙 رمزارز</h3>
+          <span class="prices-section-hint">دلار و تومان</span>
+        </div>
+        <div class="prices-grid" id="prices-crypto"></div>
+
+        <div class="prices-section-head">
+          <h3 class="prices-cat-title">📈 نمودار تاریخی</h3>
+        </div>
+        <div class="prices-chart-toolbar">
+          <button type="button" class="prices-chart-btn active" data-chart-sym="USD_IRR_FREE">دلار</button>
+          <button type="button" class="prices-chart-btn" data-chart-sym="EUR_IRR_FREE">یورو</button>
+          <button type="button" class="prices-chart-btn" data-chart-sym="GOLD_18K_IRR">طلا ۱۸</button>
+          <button type="button" class="prices-chart-btn" data-chart-sym="COIN_EMAMI_IRR">سکه امامی</button>
+          <button type="button" class="prices-chart-btn" data-chart-sym="USDT_IRR">تتر</button>
+          <div class="prices-chart-type">
+            <button type="button" class="prices-type-btn" data-chart-type="line" title="نمودار خطی">خطی</button>
+            <button type="button" class="prices-type-btn active" data-chart-type="candle" title="نمودار کندلی">کندل</button>
+          </div>
+          <select id="prices-chart-range" class="prices-chart-range">
+            <option value="30">۳۰ روز</option>
+            <option value="90" selected>۳ ماه</option>
+            <option value="180">۶ ماه</option>
+            <option value="365">۱ سال</option>
+          </select>
+        </div>
+        <div class="prices-chart-wrap">
+          <canvas id="prices-history-canvas" width="800" height="320"></canvas>
+          <p id="prices-chart-status" class="field-hint" style="text-align:center;margin-top:8px">در حال آماده‌سازی نمودار…</p>
+        </div>
+
+        <p class="prices-disclaimer">قیمت‌ها از بازار آزاد ایران (تقریبی) و به <strong>تومان</strong> هستند. مبنای تصمیم سرمایه‌گذاری نیستند. بروزرسانی خودکار هر ۳۰ ثانیه.</p>
+      </section>
+
+      <section id="tab-games" class="tab-panel tab-games-pro">
+        <div class="games-hero-pro">
+          <div class="games-hero-glow"></div>
+          <div class="games-hero-text">
+            <span class="games-badge">PLAY ZONE</span>
+            <h2>مرکز بازی</h2>
+            <p>چند چالش کوتاه برای ریست ذهن بین معاملات — تمرکز، سرعت و دقت</p>
+          </div>
+          <div class="games-hero-stats">
+            <div class="games-stat"><b>۳</b><span>بازی</span></div>
+            <div class="games-stat"><b>سریع</b><span>شروع آنی</span></div>
+            <div class="games-stat"><b>آفلاین</b><span>بدون نت</span></div>
+          </div>
+        </div>
+
+        <div class="games-menu games-menu-pro" id="games-menu">
+          <button type="button" class="game-card-pro" data-game="reaction">
+            <div class="gcp-icon gcp-reaction">⚡</div>
+            <div class="gcp-body">
+              <strong>واکنش سریع</strong>
+              <span>زمان واکنش خودت را با میلی‌ثانیه اندازه بگیر</span>
+            </div>
+            <div class="gcp-meta"><em>سرعت</em><span class="gcp-go">شروع ←</span></div>
           </button>
-          <button type="button" class="game-card" data-game="mines">
-            <span class="game-emoji">💣</span>
-            <strong>مین‌روب</strong>
-            <span>لول‌بندی ۸×۸ تا ۱۶×۱۶</span>
+
+          <button type="button" class="game-card-pro" data-game="mines">
+            <div class="gcp-icon gcp-mines">💣</div>
+            <div class="gcp-body">
+              <strong>مین‌روب</strong>
+              <span>چند سطح از ۸×۸ تا ۱۶×۱۶ با پرچم و منطق کلاسیک</span>
+            </div>
+            <div class="gcp-meta"><em>منطق</em><span class="gcp-go">شروع ←</span></div>
           </button>
-          <button type="button" class="game-card" data-game="typing">
-            <span class="game-emoji">⌨️</span>
-            <strong>مسابقه تایپ</strong>
-            <span>سرعت و دقت تایپ</span>
-          </button>
-          <button type="button" class="game-card" data-game="racing">
-            <span class="game-emoji">🏎️</span>
-            <strong>مسابقه ماشین</strong>
-            <span>رانندگی و سبقت</span>
-          </button>
-          <button type="button" class="game-card" data-game="chess">
-            <span class="game-emoji">♟️</span>
-            <strong>شطرنج</strong>
-            <span>بازیکن در برابر رایانه</span>
-          </button>
-          <button type="button" class="game-card" data-game="minigolf">
-            <span class="game-emoji">⛳</span>
-            <strong>مینی گلف</strong>
-            <span>ضربه بزن و گل کن</span>
-          </button>
-          <button type="button" class="game-card" data-game="zombie">
-            <span class="game-emoji">🧟</span>
-            <strong>زامبی سروایول</strong>
-            <span>زنده‌ماندن دوبعدی</span>
+
+          <button type="button" class="game-card-pro" data-game="typing">
+            <div class="gcp-icon gcp-typing">⌨️</div>
+            <div class="gcp-body">
+              <strong>مسابقه تایپ</strong>
+              <span>سرعت و دقت تایپ را در یک چالش کوتاه بسنج</span>
+            </div>
+            <div class="gcp-meta"><em>دقت</em><span class="gcp-go">شروع ←</span></div>
           </button>
         </div>
 
-        <div id="game-stage" class="game-stage hidden">
+        <div id="game-stage" class="game-stage game-stage-pro hidden">
           <div class="game-stage-bar">
-            <button type="button" id="game-back" class="btn-secondary">← بازگشت به منو</button>
+            <button type="button" id="game-back" class="btn-secondary">← بازگشت</button>
             <strong id="game-stage-title">—</strong>
             <span id="game-stage-score" class="game-score"> </span>
           </div>
@@ -1318,32 +1388,6 @@
         <button type="button" id="btn-save-profile" class="btn-primary">ذخیره تغییرات</button>
         <button type="button" id="btn-logout" class="btn-fail" style="margin-top:12px;width:100%">خروج از حساب</button>
       </div>
-    </div>
-  </div>
-
-  <!-- AI Assistant Panel (overlay mode) -->
-  <div id="ai-panel" class="side-panel hidden">
-    <div class="side-panel-header">
-      <strong>🤖 دستیار هوش مصنوعی تریدر</strong>
-      <button type="button" id="ai-close" class="modal-close">✕</button>
-    </div>
-    <div id="ai-messages" class="chat-messages"></div>
-    <div class="chat-input-row">
-      <input type="text" id="ai-input" placeholder="سوال بپرس... مثلاً مدیریت ریسک" />
-      <button type="button" id="ai-send" class="btn-primary">ارسال</button>
-    </div>
-  </div>
-
-  <!-- Public Chat Panel -->
-  <div id="public-chat-panel" class="side-panel hidden">
-    <div class="side-panel-header">
-      <strong>💬 چت عمومی</strong>
-      <button type="button" id="pubchat-close" class="modal-close">✕</button>
-    </div>
-    <div id="pubchat-messages" class="chat-messages"></div>
-    <div class="chat-input-row">
-      <input type="text" id="pubchat-input" placeholder="پیام خود را بنویسید..." maxlength="300" />
-      <button type="button" id="pubchat-send" class="btn-primary">ارسال</button>
     </div>
   </div>
 

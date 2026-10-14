@@ -81,6 +81,37 @@ function saveMessages(msgs) {
 window.addEventListener('DOMContentLoaded', () => {
   try { ensureAdminExists(); } catch (e) { console.error(e); }
   const splash = document.getElementById('splash');
+
+  // Splash progress animation
+  (function runSplashProgress() {
+    const bar = document.getElementById('splash-progress');
+    const st = document.getElementById('splash-status');
+    const steps = ['آماده‌سازی…', 'بارگذاری داده…', 'تنظیم رابط…', 'تقریباً آماده…'];
+    let p = 0, si = 0;
+    const t = setInterval(() => {
+      p += 3 + Math.random() * 5;
+      if (p > 100) p = 100;
+      if (bar) bar.style.width = p + '%';
+      if (st && p > (si + 1) * 22 && si < steps.length) {
+        st.textContent = steps[si++];
+      }
+      if (p >= 100) clearInterval(t);
+    }, 80);
+    // particles
+    const box = document.getElementById('splash-particles');
+    if (box) {
+      for (let i = 0; i < 28; i++) {
+        const s = document.createElement('span');
+        s.className = 'splash-dot';
+        s.style.left = Math.random() * 100 + '%';
+        s.style.animationDuration = (4 + Math.random() * 6) + 's';
+        s.style.animationDelay = (Math.random() * 3) + 's';
+        s.style.opacity = String(0.2 + Math.random() * 0.5);
+        box.appendChild(s);
+      }
+    }
+  })();
+
   const dateEl = document.getElementById('trade-date');
   if (dateEl) try { dateEl.valueAsDate = new Date(); } catch (e) {}
 
@@ -132,7 +163,7 @@ window.addEventListener('DOMContentLoaded', () => {
     if (splash && !splash.classList.contains('hide') && splash.style.display !== 'none') {
       finishSplash();
     }
-  }, 3200);
+  }, 2800);
 });
 
 function enterApp() {
@@ -159,7 +190,8 @@ function showModeScreen() {
 
 function openApp(mode) {
   if (mode === 'prop') appMode = 'prop';
-  else if (mode === 'games') appMode = 'games';
+  else if (mode === 'prices') appMode = 'prices';
+  else if (mode === 'games') appMode = 'prices'; // بازی حذف شد → قیمت
   else appMode = 'journal';
   const ms = document.getElementById('mode-screen');
   if (ms) {
@@ -168,10 +200,11 @@ function openApp(mode) {
   }
   const app = document.getElementById('app');
   app.classList.remove('hidden');
-  app.classList.remove('mode-journal', 'mode-prop', 'mode-games', 'mode-chat', 'mode-telegram', 'mode-planner', 'mode-finance');
-  const modeClass = { prop: 'mode-prop', games: 'mode-games' }[appMode] || 'mode-journal';
+  app.classList.remove('mode-journal', 'mode-prop', 'mode-games', 'mode-prices', 'mode-chat', 'mode-telegram', 'mode-planner', 'mode-finance');
+  const modeClass = { prop: 'mode-prop', prices: 'mode-prices' }[appMode] || 'mode-journal';
   app.classList.add(modeClass);
-  document.querySelectorAll('.ws-btn').forEach(b => {
+
+  document.querySelectorAll('#workspace-switch .ws-btn').forEach(b => {
     b.classList.toggle('active', b.dataset.ws === appMode);
   });
 
@@ -209,9 +242,10 @@ function openApp(mode) {
     renderProp();
     renderPropHistory();
     renderPropArchive();
-  } else if (appMode === 'games') {
-    document.getElementById('tab-games')?.classList.add('active');
-    if (typeof showGamesMenu === 'function') showGamesMenu();
+  } else if (appMode === 'prices') {
+    document.getElementById('tab-prices')?.classList.add('active');
+    try { loadMarketPrices(false); } catch (e) {}
+    try { if (typeof loadPricesChart === 'function') loadPricesChart(pricesChartSym || 'USD_IRR_FREE'); } catch (e) {}
   } else {
     document.querySelector('[data-tab="new"]')?.classList.add('active');
     document.getElementById('tab-new')?.classList.add('active');
@@ -219,7 +253,7 @@ function openApp(mode) {
 
   updateTraderMood();
   updatePropMedal();
-  if (appMode !== 'games') {
+  if (appMode !== 'prices') {
     renderAll();
     if (typeof calcRisk === 'function') calcRisk();
   }
@@ -228,7 +262,8 @@ function openApp(mode) {
 
 document.getElementById('btn-mode-journal')?.addEventListener('click', () => openApp('journal'));
 document.getElementById('btn-mode-prop')?.addEventListener('click', () => openApp('prop'));
-document.getElementById('btn-mode-games')?.addEventListener('click', () => openApp('games'));
+document.getElementById('btn-mode-prices')?.addEventListener('click', () => openApp('prices'));
+document.getElementById('btn-mode-games')?.addEventListener('click', () => openApp('prices'));
 /* switch mode removed */
 /* mode back logout removed */
 
@@ -2714,13 +2749,14 @@ document.getElementById('btn-close-prop')?.addEventListener('click', closePropAf
 
 
 
-// Workspace switcher (ژورنال / پراپ / بازی)
+// Workspace switcher (ژورنال / پراپ / قیمت)
 document.getElementById('workspace-switch')?.addEventListener('click', (e) => {
   const btn = e.target.closest('.ws-btn');
   if (!btn) return;
   const ws = btn.dataset.ws;
   if (ws === 'prop') openApp('prop');
-  else if (ws === 'games') openApp('games');
+  else if (ws === 'prices') openApp('prices');
+  else if (ws === 'games') openApp('prices');
   else openApp('journal');
 });
 
@@ -3602,6 +3638,12 @@ function applyTheme(name) {
   });
   // force paint so gradients/vars refresh
   document.documentElement.style.colorScheme = 'dark';
+  // redraw prices chart with new theme colors
+  try {
+    if (typeof loadPricesChart === 'function' && (appMode === 'prices' || document.getElementById('tab-prices')?.classList.contains('active'))) {
+      setTimeout(() => loadPricesChart(typeof pricesChartSym !== 'undefined' ? pricesChartSym : 'USD_IRR_FREE'), 50);
+    }
+  } catch (e) {}
 }
 applyTheme();
 
@@ -4322,7 +4364,7 @@ function mountAdvancedChart() {
     allow_symbol_change: true,
     calendar: false,
     support_host: 'https://www.tradingview.com',
-    height: 460,
+    height: 680,
     width: '100%'
   });
   host.appendChild(script);
@@ -4334,7 +4376,6 @@ function loadChartTabWidgets() {
   if (st) st.textContent = 'در حال بارگذاری ویجت‌های TradingView...';
   try {
     mountSingleQuote('tv-mini-xau', 'OANDA:XAUUSD', 'GOLD');
-    mountSingleQuote('tv-mini-dji', 'FOREXCOM:DJI', 'DJI');
     mountSingleQuote('tv-mini-ixic', 'NASDAQ:IXIC', 'NASDAQ');
     mountSingleQuote('tv-mini-eur', 'FX:EURUSD', 'EURUSD');
     mountAdvancedChart();
@@ -5816,14 +5857,36 @@ let propCalJy, propCalJm;
 })();
 
 function propNetOf(tr) {
-  return tr.netPnl != null ? tr.netPnl : (tr.pnl || 0);
+  const v = tr.netPnl != null ? tr.netPnl : (tr.pnl != null ? tr.pnl : (tr.profit != null ? tr.profit : 0));
+  const n = parseFloat(v);
+  return isNaN(n) ? 0 : n;
+}
+
+function propTradeDayKey(tr) {
+  if (!tr) return '';
+  let d = tr.date || tr.tradeDate || tr.day || '';
+  if (!d && tr.createdAt) d = tr.createdAt;
+  d = String(d).trim();
+  if (!d) return '';
+  // ISO or YYYY-MM-DD
+  if (/^\d{4}-\d{2}-\d{2}/.test(d)) return d.slice(0, 10);
+  // timestamp
+  const t = Date.parse(d);
+  if (!isNaN(t)) {
+    const x = new Date(t);
+    const y = x.getFullYear();
+    const m = String(x.getMonth() + 1).padStart(2, '0');
+    const day = String(x.getDate()).padStart(2, '0');
+    return y + '-' + m + '-' + day;
+  }
+  return '';
 }
 
 function buildPropDayMap() {
   const map = {};
   (trades || []).forEach(tr => {
-    if (!tr || !tr.date) return;
-    const k = tr.date; // YYYY-MM-DD
+    const k = propTradeDayKey(tr);
+    if (!k) return;
     if (!map[k]) map[k] = { pnl: 0, count: 0, wins: 0, losses: 0 };
     const n = propNetOf(tr);
     map[k].pnl += n;
@@ -5832,6 +5895,15 @@ function buildPropDayMap() {
     else if (n < 0) map[k].losses += 1;
   });
   return map;
+}
+
+function formatPropPnl(n) {
+  const abs = Math.abs(n);
+  let s;
+  if (abs >= 1000) s = n.toFixed(0);
+  else if (abs >= 100) s = n.toFixed(1);
+  else s = n.toFixed(2);
+  return (n > 0 ? '+' : '') + s;
 }
 
 function renderPropTradingCalendar() {
@@ -5846,41 +5918,66 @@ function renderPropTradingCalendar() {
   title.textContent = (JALALI_MONTHS[propCalJm - 1] || '') + ' ' + propCalJy;
   const dayMap = buildPropDayMap();
   const len = jalaliMonthLength(propCalJy, propCalJm);
-  // weekday of first day (Saturday=0)
   const g0 = jalaliToGregorian(propCalJy, propCalJm, 1);
   const dt0 = new Date(g0.gy, g0.gm - 1, g0.gd);
-  // JS: 0=Sun ... 6=Sat → convert to Sat=0
   const jsDay = dt0.getDay();
-  const startPad = (jsDay + 1) % 7;
+  const startPad = (jsDay + 1) % 7; // شنبه = 0
 
   const today = new Date();
   const tj = gregorianToJalali(today.getFullYear(), today.getMonth() + 1, today.getDate());
+
+  let monthPnl = 0, monthCount = 0, monthWins = 0, monthLosses = 0;
   let html = '';
-  for (let i = 0; i < startPad; i++) html += '<div class="prop-cal-cell empty"></div>';
+  for (let i = 0; i < startPad; i++) html += '<div class="prop-cal-cell empty" aria-hidden="true"></div>';
   for (let d = 1; d <= len; d++) {
     const gKey = toGKey(propCalJy, propCalJm, d);
     const info = dayMap[gKey];
     const isToday = (tj.jy === propCalJy && tj.jm === propCalJm && tj.jd === d);
     let cls = 'prop-cal-cell';
-    let pnlTxt = '';
-    let countTxt = '';
+    let pnlHtml = '';
+    let countHtml = '';
     if (info && info.count) {
+      monthPnl += info.pnl;
+      monthCount += info.count;
+      monthWins += info.wins;
+      monthLosses += info.losses;
       if (info.pnl > 0.0001) cls += ' profit';
       else if (info.pnl < -0.0001) cls += ' loss';
       else cls += ' flat';
-      pnlTxt = (info.pnl >= 0 ? '+' : '') + info.pnl.toFixed(1);
-      countTxt = info.count + ' معامله';
+      const label = info.pnl > 0.0001 ? 'سود' : (info.pnl < -0.0001 ? 'ضرر' : 'صفر');
+      pnlHtml = `<span class="pcd-pnl">${formatPropPnl(info.pnl)}</span><span class="pcd-label">${label}</span>`;
+      countHtml = `<span class="pcd-count">${info.count} معامله</span>`;
     } else {
       cls += ' none';
     }
     if (isToday) cls += ' today';
-    html += `<button type="button" class="${cls}" data-gkey="${gKey}" data-jd="${d}">
+    html += `<button type="button" class="${cls}" data-gkey="${gKey}" data-jd="${d}" title="${gKey}">
       <span class="pcd-num">${d}</span>
-      ${pnlTxt ? `<span class="pcd-pnl">${pnlTxt}</span>` : ''}
-      ${countTxt ? `<span class="pcd-count">${countTxt}</span>` : ''}
+      ${pnlHtml}
+      ${countHtml}
     </button>`;
   }
+  // pad end of week
+  const totalCells = startPad + len;
+  const endPad = (7 - (totalCells % 7)) % 7;
+  for (let i = 0; i < endPad; i++) html += '<div class="prop-cal-cell empty" aria-hidden="true"></div>';
   grid.innerHTML = html;
+
+  // monthly summary
+  let sum = document.getElementById('prop-cal-month-summary');
+  if (!sum) {
+    sum = document.createElement('div');
+    sum.id = 'prop-cal-month-summary';
+    sum.className = 'prop-cal-month-summary';
+    grid.parentNode.insertBefore(sum, grid.nextSibling);
+  }
+  const cls = monthPnl > 0 ? 'pos' : (monthPnl < 0 ? 'neg' : '');
+  sum.innerHTML = `
+    <div class="pcms-item"><span>معاملات ماه</span><b>${monthCount}</b></div>
+    <div class="pcms-item"><span>روزهای سود</span><b class="pos">${monthWins ? Object.values(dayMap).filter(x=>x.pnl>0).length : 0}</b></div>
+    <div class="pcms-item"><span>روزهای ضرر</span><b class="neg">${Object.values(dayMap).filter(x=>x.pnl<0 && x.count).length}</b></div>
+    <div class="pcms-item"><span>جمع ماه</span><b class="${cls}">${formatPropPnl(monthPnl)} $</b></div>
+  `;
 }
 
 function showPropCalDayDetail(gKey) {
@@ -6066,7 +6163,7 @@ function openGame(name) {
 }
 
 document.getElementById('games-menu')?.addEventListener('click', (e) => {
-  const card = e.target.closest('.game-card');
+  const card = e.target.closest('.game-card, .game-card-pro');
   if (!card) return;
   openGame(card.dataset.game);
 });
@@ -6649,19 +6746,56 @@ function openProfile() {
 function closeProfile() {
   document.getElementById('profile-modal')?.classList.add('hidden');
 }
+function closeNotifPanel() {
+  const panel = document.getElementById('notif-panel');
+  if (panel) {
+    panel.classList.add('hidden');
+    panel.style.display = 'none';
+  }
+}
+function openNotifPanel() {
+  const panel = document.getElementById('notif-panel');
+  if (!panel) return;
+  panel.classList.remove('hidden');
+  panel.style.display = '';
+  const arr = getNotifs().map(n => ({ ...n, read: true }));
+  saveNotifs(arr);
+  updateNotifBadge();
+  renderNotifPanel();
+}
+function toggleNotifPanel() {
+  const panel = document.getElementById('notif-panel');
+  if (!panel) return;
+  const isHidden = panel.classList.contains('hidden') || panel.style.display === 'none';
+  if (isHidden) openNotifPanel();
+  else closeNotifPanel();
+}
+
 document.addEventListener('click', (e) => {
   if (e.target.id === 'btn-profile' || e.target.closest?.('#btn-profile')) openProfile();
   if (e.target.id === 'profile-close' || e.target.hasAttribute?.('data-close-profile')) closeProfile();
-  if (e.target.id === 'btn-notif' || e.target.closest?.('#btn-notif')) {
-    const panel = document.getElementById('notif-panel');
-    panel?.classList.toggle('hidden');
-    if (panel && !panel.classList.contains('hidden')) {
-      const arr = getNotifs().map(n => ({ ...n, read: true }));
-      saveNotifs(arr);
-      updateNotifBadge();
-      renderNotifPanel();
-    }
+
+  const notifBtn = e.target.closest?.('#btn-notif');
+  const notifPanel = document.getElementById('notif-panel');
+
+  // کلیک روی زنگ = باز/بسته
+  if (notifBtn) {
+    e.preventDefault();
+    e.stopPropagation();
+    toggleNotifPanel();
+    return;
   }
+
+  // کلیک بیرون از باکس اعلان = بستن
+  if (notifPanel && !notifPanel.classList.contains('hidden')) {
+    // اگر داخل خود پنل کلیک شد نبند
+    if (notifPanel.contains(e.target)) return;
+    closeNotifPanel();
+  }
+}, true); // capture: قبل از بقیه handlerها
+
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') closeNotifPanel();
 });
 document.getElementById('profile-avatar-input')?.addEventListener('change', (e) => {
   const file = e.target.files?.[0];
@@ -6774,30 +6908,64 @@ const AI_KNOWLEDGE = [
   { k: ['خبر', 'cpi', 'fomc', 'nfp'], a: 'قبل از اخبار مهم (CPI، NFP، FOMC) یا خارج شو یا سایز را نصف کن. ۱۵ دقیقه بعد از انتشار صبر کن تا جهت مشخص شود.' }
 ];
 function aiReply(msg) {
-  const t = (msg || '').toLowerCase();
-  for (const item of AI_KNOWLEDGE) {
-    if (item.k.some(k => t.includes(k))) return item.a;
+  const raw = (msg || '').trim();
+  const t = raw.toLowerCase();
+  const session = (typeof getCurrentSessionInfo === 'function') ? getCurrentSessionInfo() : { name: 'بازار' };
+
+  // conversational openers
+  if (/^(سلام|درود|hi|hello|صبح بخیر|عصر بخیر)/i.test(raw)) {
+    return 'سلام! خوش اومدی 👋\nالان سشن ' + session.name + ' است. بگو امروز روی چه چیزی تمرکز داری: ریسک، ستاپ، یا کنترل احساسات؟';
   }
-  const session = getCurrentSessionInfo();
-  return 'سوالت را دقیق‌تر بپرس (ریسک، استاپ، سشن، طلا، پراپ، اخبار...). الان ' + session.name + ' است. من یک دستیار آموزشی هستم و توصیه سرمایه‌گذاری شخصی نیست.';
+  if (/خوبی|چطوری|چه خبر/.test(t)) {
+    return 'من همیشه آماده‌ام 😊\nاز بازار یا ژورنالت بگو؛ با هم جمع‌بندی می‌کنیم.';
+  }
+  if (/ممنون|مرسی|thanks/.test(t)) {
+    return 'خواهش می‌کنم. اگر خواستی همان موضوع را عمیق‌تر ادامه بدهیم، بگو.';
+  }
+
+  for (const item of AI_KNOWLEDGE) {
+    if (item.k.some(k => t.includes(k))) {
+      return item.a + '\n\nاگر جزئیات بیشتری از وضعیت حساب یا معامله‌ات بگی، دقیق‌تر راهنمایی می‌کنم.';
+    }
+  }
+
+  // soft contextual fallback
+  if (/ضرر|دراودان|lose|loss/.test(t)) {
+    return 'بعد از ضرر، مهم‌ترین کار توقف کوتاه و مرور قانون‌های خودت است.\n۱) از معامله انتقامی پرهیز کن\n۲) سایز را کم کن\n۳) فقط ستاپ‌های باکیفیت را بگیر\nاگر بگی امروز چقدر ضرر کردی، کمک می‌کنم سقف منطقی تعیین کنیم.';
+  }
+  if (/سود|برد|win/.test(t)) {
+    return 'سود خوبه؛ ولی حفظ انضباط مهم‌تره.\nالان بهترین کار اینه که هدف روزانه را قفل کنی و از اورترید دوری کنی. می‌خوای یک قانون خروج بعد از سود برات بنویسم؟';
+  }
+
+  return 'متوجه شدم، ولی برای جواب دقیق‌تر کمی بیشتر توضیح بده.\nمثلاً: «ریسک هر معامله‌ام چقدر باشد؟» یا «در سشن لندن روی طلا چطور رفتار کنم؟»\nالان سشن ' + session.name + ' است. من دستیار آموزشی هستم و توصیه سرمایه‌گذاری شخصی نیست.';
+}
+function openAiPanel() {
+  document.getElementById('ai-panel')?.classList.remove('hidden');
+  const box = document.getElementById('ai-messages');
+  if (box && !box.dataset.ready) {
+    appendAiMsg('سلام، من دستیار ترید AIO هستم.\nمثل یک مشاور کنارت هستم — از ریسک، روانشناسی معامله، سشن‌ها، طلا، پراپ یا برنامه‌ریزی روزانه‌ات بپرس.\nهرچی دقیق‌تر بگی، بهتر جواب می‌دم.', 'bot');
+    box.dataset.ready = '1';
+  }
 }
 function appendAiMsg(text, who) {
   const box = document.getElementById('ai-messages');
   if (!box) return;
+  const row = document.createElement('div');
+  row.className = 'ai-row ' + (who === 'user' ? 'user' : 'bot');
+  const av = document.createElement('div');
+  av.className = 'ai-bubble-avatar';
+  av.textContent = who === 'user' ? 'شما' : '✦';
   const div = document.createElement('div');
   div.className = 'chat-bubble ' + (who === 'user' ? 'me' : 'bot');
-  div.textContent = text;
-  box.appendChild(div);
+  // simple formatting: newlines
+  div.innerHTML = escapeHtml(text).replace(/\n/g, '<br>');
+  row.appendChild(av);
+  row.appendChild(div);
+  box.appendChild(row);
   box.scrollTop = box.scrollHeight;
 }
-function openAiPanel() {
-  document.getElementById('ai-panel')?.classList.remove('hidden');
-  document.getElementById('public-chat-panel')?.classList.add('hidden');
-  const box = document.getElementById('ai-messages');
-  if (box && !box.dataset.ready) {
-    appendAiMsg('سلام! من دستیار تریدر AIO هستم. درباره ریسک، سشن، طلا، پراپ یا اخبار بپرس.', 'bot');
-    box.dataset.ready = '1';
-  }
+function setAiTyping(on) {
+  document.getElementById('ai-typing')?.classList.toggle('hidden', !on);
 }
 function sendAi() {
   const input = document.getElementById('ai-input');
@@ -6805,7 +6973,12 @@ function sendAi() {
   if (!msg) return;
   appendAiMsg(msg, 'user');
   input.value = '';
-  setTimeout(() => appendAiMsg(aiReply(msg), 'bot'), 350);
+  setAiTyping(true);
+  const delay = 600 + Math.min(1800, msg.length * 25);
+  setTimeout(() => {
+    setAiTyping(false);
+    appendAiMsg(aiReply(msg), 'bot');
+  }, delay);
 }
 document.getElementById('ai-send')?.addEventListener('click', sendAi);
 document.getElementById('ai-input')?.addEventListener('keydown', e => { if (e.key === 'Enter') sendAi(); });
@@ -6853,13 +7026,7 @@ document.getElementById('pubchat-send')?.addEventListener('click', sendPublicCha
 document.getElementById('pubchat-input')?.addEventListener('keydown', e => { if (e.key === 'Enter') sendPublicChat(); });
 document.getElementById('pubchat-close')?.addEventListener('click', () => document.getElementById('public-chat-panel')?.classList.add('hidden'));
 
-// Workspace AI / Chat buttons
-document.getElementById('workspace-switch')?.addEventListener('click', (e) => {
-  const btn = e.target.closest('.ws-btn');
-  if (!btn) return;
-  if (btn.dataset.ws === 'ai') { openAiPanel(); e.stopPropagation(); }
-  if (btn.dataset.ws === 'chat') { openPublicChat(); e.stopPropagation(); }
-});
+// AI panel removed — no workspace AI handler
 
 // ----- Professional equity chart upgrade -----
 function drawEquityCurve() {
@@ -6978,11 +7145,13 @@ function drawEquityCurve() {
 function enhanceLivePricesLayout() {
   const style = document.createElement('style');
   style.textContent = `
-    .live-prices { display:grid !important; grid-template-columns:1fr 1fr !important; gap:12px !important; }
-    @media(min-width:900px){ .live-prices { grid-template-columns:1fr 1fr 1fr 1fr !important; } }
-    .tv-mini { min-height:120px !important; border-radius:14px; overflow:hidden; background:rgba(15,23,42,.6); border:1px solid rgba(148,163,184,.15); }
-    .tv-mini iframe { min-height:120px !important; }
-    #tv_advanced_host { height:520px !important; }
+    .live-prices { display:grid !important; grid-template-columns:1fr !important; gap:14px !important; }
+    @media(min-width:640px){ .live-prices { grid-template-columns:1fr 1fr 1fr !important; } }
+    .tv-mini { min-height:180px !important; border-radius:16px; overflow:hidden; background:rgba(15,23,42,.6); border:1px solid rgba(148,163,184,.15); }
+    .tv-mini iframe { min-height:180px !important; height:180px !important; }
+    .tv-wrap, .tv-wrap-large { min-height:680px !important; height:680px !important; }
+    #tv_advanced_host { height:680px !important; min-height:680px !important; }
+    #tv_advanced_host iframe { height:680px !important; min-height:680px !important; }
   `;
   document.head.appendChild(style);
 }
@@ -7002,10 +7171,6 @@ function openGame(name) {
     reaction: 'واکنش سریع',
     mines: 'مین‌روب',
     typing: 'مسابقه تایپ',
-    racing: 'مسابقه ماشین',
-    chess: 'شطرنج',
-    minigolf: 'مینی گلف',
-    zombie: 'زامبی سروایول'
   };
   document.getElementById('game-stage-title').textContent = titles[name] || name;
   document.getElementById('game-stage-score').textContent = '';
@@ -7015,11 +7180,7 @@ function openGame(name) {
   if (name === 'reaction') initReactionGame(body);
   else if (name === 'mines') initMinesLeveled(body);
   else if (name === 'typing') initTypingRace(body);
-  else if (name === 'racing') initRacingGame(body);
-  else if (name === 'chess') initChessGame(body);
-  else if (name === 'minigolf') initMiniGolf(body);
-  else if (name === 'zombie') initZombieSurvival(body);
-}
+    }
 
 function initMinesLeveled(body) {
   const scoreEl = document.getElementById('game-stage-score');
@@ -7386,192 +7547,807 @@ function initChessGame(body) {
 
 function initMiniGolf(body) {
   const scoreEl = document.getElementById('game-stage-score');
-  body.innerHTML = `<canvas id="golf-canvas" width="360" height="480" style="width:100%;max-width:360px;display:block;margin:0 auto;border-radius:12px;background:#14532d"></canvas>
-    <p class="field-hint">بکش و رها کن برای ضربه · توپ را در حفره بینداز</p>
-    <button type="button" class="btn-secondary" id="golf-reset" style="display:block;margin:8px auto">ریست</button>`;
+  body.innerHTML = `
+    <div class="golf-pro">
+      <div class="golf-top">
+        <span id="golf-level">مرحله ۱ / ۱۰</span>
+        <span id="golf-par">پار: ۳</span>
+        <span id="golf-strokes">ضربه: ۰</span>
+      </div>
+      <canvas id="golf-canvas" width="360" height="500"></canvas>
+      <p class="field-hint">بکش و رها کن · قدرت با طول کشش · ۱۰ مرحله</p>
+      <div class="golf-actions">
+        <button type="button" class="btn-secondary" id="golf-reset" style="width:auto">ریست مرحله</button>
+        <button type="button" class="btn-secondary" id="golf-skip" style="width:auto">مرحله بعد</button>
+      </div>
+      <div id="golf-msg" class="golf-msg"></div>
+    </div>`;
+
   const canvas = body.querySelector('#golf-canvas');
   const ctx = canvas.getContext('2d');
-  let ball = { x: 180, y: 420, vx: 0, vy: 0 };
-  let hole = { x: 180, y: 80, r: 14 };
-  let strokes = 0;
-  let dragging = null;
-  let won = false;
+  const W = 360, H = 500, R = 9;
+  const msgEl = body.querySelector('#golf-msg');
 
-  function draw() {
-    ctx.fillStyle = '#166534';
-    ctx.fillRect(0, 0, 360, 480);
-    // hole
-    ctx.fillStyle = '#020617';
-    ctx.beginPath(); ctx.arc(hole.x, hole.y, hole.r, 0, Math.PI * 2); ctx.fill();
-    ctx.strokeStyle = '#f8fafc'; ctx.lineWidth = 2;
-    ctx.beginPath(); ctx.moveTo(hole.x, hole.y - hole.r); ctx.lineTo(hole.x, hole.y - 40); ctx.stroke();
-    ctx.fillStyle = '#ef4444';
-    ctx.beginPath(); ctx.moveTo(hole.x, hole.y - 40); ctx.lineTo(hole.x + 18, hole.y - 32); ctx.lineTo(hole.x, hole.y - 24); ctx.fill();
-    // ball
-    ctx.fillStyle = '#f8fafc';
-    ctx.beginPath(); ctx.arc(ball.x, ball.y, 8, 0, Math.PI * 2); ctx.fill();
-    if (dragging) {
-      ctx.strokeStyle = 'rgba(248,250,252,0.7)';
-      ctx.beginPath(); ctx.moveTo(ball.x, ball.y); ctx.lineTo(dragging.x, dragging.y); ctx.stroke();
-    }
-    scoreEl.textContent = won ? 'گل! ⛳ ' + strokes + ' ضربه' : 'ضربه: ' + strokes;
+  // levels: start, hole, walls[{x,y,w,h}], sand[{x,y,w,h}], water[{x,y,w,h}], par
+  const LEVELS = [
+    { par: 2, start: { x: 180, y: 440 }, hole: { x: 180, y: 80 }, walls: [], sand: [], water: [] },
+    { par: 3, start: { x: 60, y: 440 }, hole: { x: 300, y: 80 }, walls: [{ x: 150, y: 220, w: 60, h: 160 }], sand: [], water: [] },
+    { par: 3, start: { x: 180, y: 450 }, hole: { x: 180, y: 70 }, walls: [{ x: 40, y: 200, w: 120, h: 24 }, { x: 200, y: 280, w: 120, h: 24 }], sand: [{ x: 130, y: 320, w: 100, h: 50 }], water: [] },
+    { par: 3, start: { x: 50, y: 430 }, hole: { x: 310, y: 90 }, walls: [{ x: 120, y: 100, w: 20, h: 280 }], sand: [], water: [{ x: 180, y: 240, w: 100, h: 70 }] },
+    { par: 4, start: { x: 180, y: 460 }, hole: { x: 180, y: 60 }, walls: [{ x: 80, y: 160, w: 200, h: 20 }, { x: 80, y: 300, w: 200, h: 20 }], sand: [{ x: 40, y: 220, w: 60, h: 60 }, { x: 260, y: 220, w: 60, h: 60 }], water: [] },
+    { par: 4, start: { x: 40, y: 450 }, hole: { x: 320, y: 70 }, walls: [{ x: 100, y: 80, w: 18, h: 200 }, { x: 240, y: 220, w: 18, h: 200 }, { x: 140, y: 250, w: 80, h: 18 }], sand: [{ x: 150, y: 360, w: 90, h: 40 }], water: [{ x: 40, y: 200, w: 50, h: 50 }] },
+    { par: 4, start: { x: 180, y: 460 }, hole: { x: 60, y: 80 }, walls: [{ x: 140, y: 120, w: 180, h: 20 }, { x: 40, y: 250, w: 180, h: 20 }, { x: 160, y: 370, w: 160, h: 20 }], sand: [], water: [{ x: 220, y: 180, w: 90, h: 50 }] },
+    { par: 5, start: { x: 40, y: 460 }, hole: { x: 320, y: 60 }, walls: [{ x: 70, y: 100, w: 20, h: 140 }, { x: 160, y: 200, w: 20, h: 180 }, { x: 250, y: 100, w: 20, h: 220 }, { x: 100, y: 340, w: 120, h: 18 }], sand: [{ x: 200, y: 400, w: 80, h: 40 }], water: [{ x: 40, y: 280, w: 50, h: 50 }] },
+    { par: 5, start: { x: 180, y: 470 }, hole: { x: 180, y: 50 }, walls: [{ x: 40, y: 140, w: 100, h: 18 }, { x: 220, y: 140, w: 100, h: 18 }, { x: 100, y: 240, w: 160, h: 18 }, { x: 40, y: 340, w: 100, h: 18 }, { x: 220, y: 340, w: 100, h: 18 }], sand: [{ x: 140, y: 280, w: 80, h: 40 }], water: [{ x: 150, y: 180, w: 60, h: 40 }] },
+    { par: 5, start: { x: 50, y: 460 }, hole: { x: 310, y: 55 }, walls: [
+      { x: 90, y: 80, w: 18, h: 160 }, { x: 180, y: 160, w: 18, h: 180 }, { x: 270, y: 80, w: 18, h: 220 },
+      { x: 120, y: 300, w: 90, h: 18 }, { x: 40, y: 200, w: 40, h: 18 }, { x: 220, y: 380, w: 80, h: 18 }
+    ], sand: [{ x: 140, y: 400, w: 100, h: 36 }], water: [{ x: 200, y: 240, w: 50, h: 50 }, { x: 50, y: 320, w: 40, h: 40 }] }
+  ];
+
+  let level = 0, ball, hole, walls, sand, water, par;
+  let strokes = 0, totalStrokes = 0, dragging = false, dragStart = null, won = false, raf = 0;
+  let friction = 0.985, sandFric = 0.92;
+
+  function loadLevel(i) {
+    level = Math.max(0, Math.min(LEVELS.length - 1, i));
+    const L = LEVELS[level];
+    ball = { x: L.start.x, y: L.start.y, vx: 0, vy: 0 };
+    hole = { ...L.hole, r: 14 };
+    walls = L.walls.map(w => ({ ...w }));
+    sand = (L.sand || []).map(s => ({ ...s }));
+    water = (L.water || []).map(w => ({ ...w }));
+    par = L.par;
+    strokes = 0;
+    won = false;
+    if (msgEl) msgEl.textContent = '';
+    syncHud();
   }
 
-  function tick() {
-    if (won) { draw(); return; }
-    ball.x += ball.vx; ball.y += ball.vy;
-    ball.vx *= 0.98; ball.vy *= 0.98;
-    if (Math.abs(ball.vx) < 0.05) ball.vx = 0;
-    if (Math.abs(ball.vy) < 0.05) ball.vy = 0;
-    if (ball.x < 8 || ball.x > 352) ball.vx *= -0.8;
-    if (ball.y < 8 || ball.y > 472) ball.vy *= -0.8;
-    ball.x = Math.max(8, Math.min(352, ball.x));
-    ball.y = Math.max(8, Math.min(472, ball.y));
-    const dx = ball.x - hole.x, dy = ball.y - hole.y;
-    if (Math.hypot(dx, dy) < hole.r - 2 && Math.hypot(ball.vx, ball.vy) < 2.5) {
+  function syncHud() {
+    body.querySelector('#golf-level').textContent = `مرحله ${level + 1} / ${LEVELS.length}`;
+    body.querySelector('#golf-par').textContent = `پار: ${par}`;
+    body.querySelector('#golf-strokes').textContent = `ضربه: ${strokes}`;
+    scoreEl.textContent = `مرحله ${level + 1}/10 · کل ضربات ${totalStrokes + strokes}`;
+  }
+
+  function inRect(x, y, r) {
+    return x >= r.x && x <= r.x + r.w && y >= r.y && y <= r.y + r.h;
+  }
+
+  function collideWalls() {
+    walls.forEach(w => {
+      // nearest point on rect
+      const nx = Math.max(w.x, Math.min(ball.x, w.x + w.w));
+      const ny = Math.max(w.y, Math.min(ball.y, w.y + w.h));
+      let dx = ball.x - nx, dy = ball.y - ny;
+      let d = Math.hypot(dx, dy);
+      if (d < R && d > 0) {
+        const ux = dx / d, uy = dy / d;
+        ball.x = nx + ux * R;
+        ball.y = ny + uy * R;
+        // reflect
+        const dot = ball.vx * ux + ball.vy * uy;
+        ball.vx -= 2 * dot * ux;
+        ball.vy -= 2 * dot * uy;
+        ball.vx *= 0.85;
+        ball.vy *= 0.85;
+      } else if (d === 0 && inRect(ball.x, ball.y, w)) {
+        // stuck inside — push out
+        ball.x = w.x - R - 1;
+        ball.vx = -Math.abs(ball.vx) * 0.8;
+      }
+    });
+  }
+
+  function speed() { return Math.hypot(ball.vx, ball.vy); }
+
+  function draw() {
+    // green field
+    const g = ctx.createLinearGradient(0, 0, 0, H);
+    g.addColorStop(0, '#166534');
+    g.addColorStop(1, '#14532d');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, W, H);
+    // subtle grid
+    ctx.strokeStyle = 'rgba(255,255,255,0.04)';
+    for (let y = 0; y < H; y += 20) {
+      ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke();
+    }
+
+    // water
+    water.forEach(w => {
+      ctx.fillStyle = 'rgba(14,165,233,0.55)';
+      ctx.fillRect(w.x, w.y, w.w, w.h);
+      ctx.strokeStyle = 'rgba(125,211,252,0.5)';
+      ctx.strokeRect(w.x + 0.5, w.y + 0.5, w.w - 1, w.h - 1);
+    });
+    // sand
+    sand.forEach(s => {
+      ctx.fillStyle = '#eab308';
+      ctx.globalAlpha = 0.55;
+      ctx.fillRect(s.x, s.y, s.w, s.h);
+      ctx.globalAlpha = 1;
+    });
+    // walls
+    walls.forEach(w => {
+      const lg = ctx.createLinearGradient(w.x, w.y, w.x + w.w, w.y + w.h);
+      lg.addColorStop(0, '#78716c');
+      lg.addColorStop(1, '#44403c');
+      ctx.fillStyle = lg;
+      ctx.fillRect(w.x, w.y, w.w, w.h);
+      ctx.strokeStyle = 'rgba(0,0,0,0.35)';
+      ctx.strokeRect(w.x + 0.5, w.y + 0.5, w.w - 1, w.h - 1);
+    });
+
+    // hole
+    ctx.beginPath();
+    ctx.fillStyle = '#0c0a09';
+    ctx.arc(hole.x, hole.y, hole.r, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.strokeStyle = 'rgba(255,255,255,0.25)';
+    ctx.arc(hole.x, hole.y, hole.r + 3, 0, Math.PI * 2);
+    ctx.stroke();
+    // flag
+    ctx.strokeStyle = '#f8fafc';
+    ctx.beginPath();
+    ctx.moveTo(hole.x + hole.r - 2, hole.y);
+    ctx.lineTo(hole.x + hole.r - 2, hole.y - 28);
+    ctx.stroke();
+    ctx.fillStyle = '#ef4444';
+    ctx.beginPath();
+    ctx.moveTo(hole.x + hole.r - 2, hole.y - 28);
+    ctx.lineTo(hole.x + hole.r + 14, hole.y - 22);
+    ctx.lineTo(hole.x + hole.r - 2, hole.y - 16);
+    ctx.closePath();
+    ctx.fill();
+
+    // aim line
+    if (dragging && dragStart && speed() < 0.15) {
+      const dx = dragStart.x - ball.x;
+      const dy = dragStart.y - ball.y;
+      ctx.strokeStyle = 'rgba(255,255,255,0.55)';
+      ctx.setLineDash([6, 6]);
+      ctx.beginPath();
+      ctx.moveTo(ball.x, ball.y);
+      ctx.lineTo(ball.x - dx * 1.2, ball.y - dy * 1.2);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      // power bar
+      const pow = Math.min(1, Math.hypot(dx, dy) / 120);
+      ctx.fillStyle = 'rgba(0,0,0,0.35)';
+      ctx.fillRect(12, H - 18, 120, 8);
+      ctx.fillStyle = pow > 0.75 ? '#ef4444' : '#22c55e';
+      ctx.fillRect(12, H - 18, 120 * pow, 8);
+    }
+
+    // ball
+    const bg = ctx.createRadialGradient(ball.x - 3, ball.y - 3, 1, ball.x, ball.y, R);
+    bg.addColorStop(0, '#ffffff');
+    bg.addColorStop(1, '#cbd5e1');
+    ctx.beginPath();
+    ctx.fillStyle = bg;
+    ctx.arc(ball.x, ball.y, R, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(0,0,0,0.2)';
+    ctx.stroke();
+  }
+
+  function physics() {
+    if (won) return;
+    ball.x += ball.vx;
+    ball.y += ball.vy;
+
+    // borders
+    if (ball.x < R) { ball.x = R; ball.vx *= -0.8; }
+    if (ball.x > W - R) { ball.x = W - R; ball.vx *= -0.8; }
+    if (ball.y < R) { ball.y = R; ball.vy *= -0.8; }
+    if (ball.y > H - R) { ball.y = H - R; ball.vy *= -0.8; }
+
+    collideWalls();
+
+    // terrain friction
+    let fr = friction;
+    if (sand.some(s => inRect(ball.x, ball.y, s))) fr = sandFric;
+    ball.vx *= fr;
+    ball.vy *= fr;
+    if (speed() < 0.08) { ball.vx = 0; ball.vy = 0; }
+
+    // water reset
+    if (water.some(w => inRect(ball.x, ball.y, w))) {
+      const L = LEVELS[level];
+      ball.x = L.start.x; ball.y = L.start.y;
+      ball.vx = ball.vy = 0;
+      strokes += 1;
+      syncHud();
+      if (msgEl) msgEl.textContent = 'آب! +۱ ضربه و برگشت به شروع';
+    }
+
+    // hole
+    const dHole = Math.hypot(ball.x - hole.x, ball.y - hole.y);
+    if (dHole < hole.r - 2 && speed() < 3.2) {
       won = true;
       ball.vx = ball.vy = 0;
       ball.x = hole.x; ball.y = hole.y;
+      totalStrokes += strokes;
+      const diff = strokes - par;
+      let label = 'PAR';
+      if (diff <= -2) label = 'EAGLE!';
+      else if (diff === -1) label = 'BIRDIE!';
+      else if (diff === 0) label = 'PAR';
+      else if (diff === 1) label = 'BOGEY';
+      else label = `+${diff}`;
+      if (msgEl) {
+        msgEl.textContent = level >= LEVELS.length - 1
+          ? `پایان! مجموع ضربات: ${totalStrokes} 🏆`
+          : `مرحله ${level + 1} تمام — ${label} · مرحله بعد…`;
+      }
+      showToast(level >= LEVELS.length - 1 ? 'همه مراحل تمام!' : 'مرحله بعدی', 'success');
+      setTimeout(() => {
+        if (level >= LEVELS.length - 1) {
+          totalStrokes = 0;
+          loadLevel(0);
+        } else {
+          loadLevel(level + 1);
+        }
+      }, 1200);
     }
+  }
+
+  function tick() {
+    physics();
     draw();
-    requestAnimationFrame(tick);
+    raf = requestAnimationFrame(tick);
   }
 
   function pos(e) {
     const r = canvas.getBoundingClientRect();
-    const client = e.touches ? e.touches[0] : e;
-    return { x: (client.clientX - r.left) * (360 / r.width), y: (client.clientY - r.top) * (480 / r.height) };
+    const sx = W / r.width, sy = H / r.height;
+    const src = e.touches ? e.touches[0] : e;
+    return { x: (src.clientX - r.left) * sx, y: (src.clientY - r.top) * sy };
   }
+
   canvas.addEventListener('pointerdown', e => {
-    if (won || Math.hypot(ball.vx, ball.vy) > 0.2) return;
-    dragging = pos(e);
+    if (won || speed() > 0.15) return;
+    dragging = true;
+    dragStart = pos(e);
+    canvas.setPointerCapture?.(e.pointerId);
   });
-  canvas.addEventListener('pointermove', e => { if (dragging) { dragging = pos(e); } });
+  canvas.addEventListener('pointermove', e => {
+    if (!dragging) return;
+    dragStart = pos(e);
+  });
   canvas.addEventListener('pointerup', e => {
     if (!dragging) return;
+    dragging = false;
+    if (won || speed() > 0.15) return;
     const p = pos(e);
-    ball.vx = (ball.x - p.x) * 0.12;
-    ball.vy = (ball.y - p.y) * 0.12;
+    // pull back: velocity opposite to drag direction from ball toward finger end... classic: from release toward ball
+    // user pulls away from target direction
+    let dx = ball.x - (dragStart?.x ?? p.x);
+    let dy = ball.y - (dragStart?.y ?? p.y);
+    // Actually standard minigolf: drag in opposite of shot direction
+    dx = (dragStart?.x ?? p.x) - ball.x;
+    dy = (dragStart?.y ?? p.y) - ball.y;
+    const d = Math.hypot(dx, dy);
+    if (d < 8) return;
+    const power = Math.min(12, d / 10);
+    ball.vx = -(dx / d) * power;
+    ball.vy = -(dy / d) * power;
     strokes++;
-    dragging = null;
+    syncHud();
+    dragStart = null;
   });
-  body.querySelector('#golf-reset').onclick = () => {
-    ball = { x: 180, y: 420, vx: 0, vy: 0 };
-    strokes = 0; won = false;
+  canvas.addEventListener('pointercancel', () => { dragging = false; dragStart = null; });
+
+  body.querySelector('#golf-reset').onclick = () => loadLevel(level);
+  body.querySelector('#golf-skip').onclick = () => {
+    if (level < LEVELS.length - 1) loadLevel(level + 1);
+    else loadLevel(0);
   };
+
+  loadLevel(0);
+  cancelAnimationFrame(raf);
   tick();
 }
 
+
 function initZombieSurvival(body) {
   const scoreEl = document.getElementById('game-stage-score');
-  body.innerHTML = `<canvas id="zom-canvas" width="360" height="480" style="width:100%;max-width:360px;display:block;margin:0 auto;border-radius:12px;background:#0f172a"></canvas>
-    <p class="field-hint">حرکت: ←→↑↓ یا WASD · شلیک: فاصله / کلیک</p>
-    <button type="button" class="btn-secondary" id="zom-start" style="display:block;margin:8px auto">شروع</button>`;
+  body.innerHTML = `
+    <div class="zom-pro">
+      <div class="zom-toolbar">
+        <select id="zom-map" class="zom-select" title="انتخاب مپ">
+          <option value="city">شهر متروکه</option>
+          <option value="lab">آزمایشگاه</option>
+          <option value="park">پارک تاریک</option>
+        </select>
+        <button type="button" class="btn-secondary" id="zom-start" style="width:auto;margin:0">شروع / مپ جدید</button>
+      </div>
+      <div class="zom-stage">
+        <canvas id="zom-canvas" width="480" height="560"></canvas>
+        <canvas id="zom-mini" width="96" height="112" class="zom-mini"></canvas>
+      </div>
+      <div class="zom-hud">
+        <span id="zom-wave">موج ۱</span>
+        <span id="zom-hp">❤ ۵</span>
+        <span id="zom-kills">کشت: ۰</span>
+        <span id="zom-ammo">مهمات: ∞</span>
+      </div>
+      <p class="field-hint">WASD / فلش · شلیک: کلیک یا Space · از دیوار و ساختمان برای کاور استفاده کن</p>
+    </div>`;
+
   const canvas = body.querySelector('#zom-canvas');
+  const mini = body.querySelector('#zom-mini');
   const ctx = canvas.getContext('2d');
-  let player, zombies, bullets, keys, score, alive, raf;
+  const mctx = mini.getContext('2d');
+  const W = 480, H = 560, TILE = 40;
+  const COLS = W / TILE, ROWS = H / TILE;
+
+  // 0 empty, 1 wall, 2 crate, 3 water/hazard, 4 spawn-block (edge)
+  let map = [];
+  let mapName = 'city';
+  let player, zombies, bullets, particles, keys, score, kills, alive, raf, wave, spawnAcc, shootCd, time, camShake;
+
+  function genMap(type) {
+    const m = Array.from({ length: ROWS }, () => Array(COLS).fill(0));
+    // border walls with gates
+    for (let c = 0; c < COLS; c++) {
+      m[0][c] = 1; m[ROWS - 1][c] = 1;
+    }
+    for (let r = 0; r < ROWS; r++) {
+      m[r][0] = 1; m[r][COLS - 1] = 1;
+    }
+    // open spawn gates mid each side
+    m[0][Math.floor(COLS / 2)] = 0;
+    m[0][Math.floor(COLS / 2) - 1] = 0;
+    m[ROWS - 1][Math.floor(COLS / 2)] = 0;
+    m[ROWS - 1][Math.floor(COLS / 2) - 1] = 0;
+    m[Math.floor(ROWS / 2)][0] = 0;
+    m[Math.floor(ROWS / 2) - 1][0] = 0;
+    m[Math.floor(ROWS / 2)][COLS - 1] = 0;
+    m[Math.floor(ROWS / 2) - 1][COLS - 1] = 0;
+
+    const blocks = type === 'lab' ? 18 : type === 'park' ? 10 : 14;
+    const crates = type === 'lab' ? 8 : type === 'park' ? 6 : 10;
+
+    // buildings / wall clusters
+    for (let i = 0; i < blocks; i++) {
+      const bw = 2 + Math.floor(Math.random() * 3);
+      const bh = 2 + Math.floor(Math.random() * 3);
+      const bx = 2 + Math.floor(Math.random() * (COLS - bw - 4));
+      const by = 2 + Math.floor(Math.random() * (ROWS - bh - 4));
+      // keep center clear for player spawn
+      if (bx < COLS / 2 + 2 && bx + bw > COLS / 2 - 2 && by < ROWS / 2 + 2 && by + bh > ROWS / 2 - 2) continue;
+      for (let r = by; r < by + bh; r++) {
+        for (let c = bx; c < bx + bw; c++) {
+          if (type === 'park' && Math.random() < 0.35) m[r][c] = 2;
+          else m[r][c] = 1;
+        }
+      }
+      // door gap
+      if (Math.random() < 0.7) {
+        const dr = by + Math.floor(bh / 2);
+        const dc = bx + Math.floor(bw / 2);
+        if (m[dr] && m[dr][dc] !== undefined) m[dr][dc] = 0;
+      }
+    }
+    // crates
+    for (let i = 0; i < crates; i++) {
+      const c = 2 + Math.floor(Math.random() * (COLS - 4));
+      const r = 2 + Math.floor(Math.random() * (ROWS - 4));
+      if (m[r][c] === 0) m[r][c] = 2;
+    }
+    // lab hazard tiles
+    if (type === 'lab') {
+      for (let i = 0; i < 6; i++) {
+        const c = 2 + Math.floor(Math.random() * (COLS - 4));
+        const r = 2 + Math.floor(Math.random() * (ROWS - 4));
+        if (m[r][c] === 0) m[r][c] = 3;
+      }
+    }
+    // clear center 3x3
+    for (let r = Math.floor(ROWS / 2) - 1; r <= Math.floor(ROWS / 2) + 1; r++) {
+      for (let c = Math.floor(COLS / 2) - 1; c <= Math.floor(COLS / 2) + 1; c++) {
+        m[r][c] = 0;
+      }
+    }
+    return m;
+  }
+
+  function tileAt(x, y) {
+    const c = Math.floor(x / TILE);
+    const r = Math.floor(y / TILE);
+    if (r < 0 || c < 0 || r >= ROWS || c >= COLS) return 1;
+    return map[r][c];
+  }
+
+  function solid(t) { return t === 1 || t === 2; }
+
+  function circleBlocked(x, y, rad) {
+    const pts = [
+      [x - rad, y], [x + rad, y], [x, y - rad], [x, y + rad],
+      [x - rad * 0.7, y - rad * 0.7], [x + rad * 0.7, y - rad * 0.7],
+      [x - rad * 0.7, y + rad * 0.7], [x + rad * 0.7, y + rad * 0.7]
+    ];
+    return pts.some(([px, py]) => solid(tileAt(px, py)));
+  }
+
+  function tryMove(ent, nx, ny, rad) {
+    if (!circleBlocked(nx, ent.y, rad)) ent.x = nx;
+    if (!circleBlocked(ent.x, ny, rad)) ent.y = ny;
+  }
+
+  function addParticles(x, y, color, n) {
+    for (let i = 0; i < n; i++) {
+      particles.push({
+        x, y,
+        vx: (Math.random() - 0.5) * 5,
+        vy: (Math.random() - 0.5) * 5,
+        life: 16 + Math.random() * 18,
+        color
+      });
+    }
+  }
+
+  function updateHud() {
+    const w = body.querySelector('#zom-wave');
+    const h = body.querySelector('#zom-hp');
+    const k = body.querySelector('#zom-kills');
+    if (w) w.textContent = 'موج ' + wave;
+    if (h) h.textContent = '❤ ' + player.hp;
+    if (k) k.textContent = 'کشت: ' + kills;
+  }
+
+  function drawMap() {
+    for (let r = 0; r < ROWS; r++) {
+      for (let c = 0; c < COLS; c++) {
+        const x = c * TILE, y = r * TILE;
+        const t = map[r][c];
+        // floor
+        if (mapName === 'lab') {
+          ctx.fillStyle = (r + c) % 2 ? '#1e293b' : '#172033';
+        } else if (mapName === 'park') {
+          ctx.fillStyle = (r + c) % 2 ? '#14532d' : '#166534';
+        } else {
+          ctx.fillStyle = (r + c) % 2 ? '#334155' : '#3f4b5f';
+        }
+        ctx.fillRect(x, y, TILE, TILE);
+
+        if (t === 1) {
+          // building wall
+          const g = ctx.createLinearGradient(x, y, x + TILE, y + TILE);
+          if (mapName === 'lab') {
+            g.addColorStop(0, '#475569'); g.addColorStop(1, '#1e293b');
+          } else if (mapName === 'park') {
+            g.addColorStop(0, '#3f2e1a'); g.addColorStop(1, '#1c140c');
+          } else {
+            g.addColorStop(0, '#64748b'); g.addColorStop(1, '#334155');
+          }
+          ctx.fillStyle = g;
+          ctx.fillRect(x + 1, y + 1, TILE - 2, TILE - 2);
+          ctx.strokeStyle = 'rgba(0,0,0,0.35)';
+          ctx.strokeRect(x + 1.5, y + 1.5, TILE - 3, TILE - 3);
+          // window detail
+          if ((r + c) % 3 === 0) {
+            ctx.fillStyle = 'rgba(125,211,252,0.15)';
+            ctx.fillRect(x + 12, y + 12, 16, 16);
+          }
+        } else if (t === 2) {
+          ctx.fillStyle = '#a16207';
+          ctx.fillRect(x + 6, y + 6, TILE - 12, TILE - 12);
+          ctx.strokeStyle = '#713f12';
+          ctx.strokeRect(x + 6, y + 6, TILE - 12, TILE - 12);
+          ctx.beginPath();
+          ctx.moveTo(x + TILE / 2, y + 6);
+          ctx.lineTo(x + TILE / 2, y + TILE - 6);
+          ctx.moveTo(x + 6, y + TILE / 2);
+          ctx.lineTo(x + TILE - 6, y + TILE / 2);
+          ctx.stroke();
+        } else if (t === 3) {
+          ctx.fillStyle = 'rgba(34,197,94,0.25)';
+          ctx.fillRect(x + 4, y + 4, TILE - 8, TILE - 8);
+          ctx.strokeStyle = 'rgba(74,222,128,0.4)';
+          ctx.strokeRect(x + 4, y + 4, TILE - 8, TILE - 8);
+        }
+      }
+    }
+  }
+
+  function drawMini() {
+    mctx.clearRect(0, 0, 96, 112);
+    const sx = 96 / W, sy = 112 / H;
+    for (let r = 0; r < ROWS; r++) {
+      for (let c = 0; c < COLS; c++) {
+        const t = map[r][c];
+        if (t === 1) mctx.fillStyle = '#64748b';
+        else if (t === 2) mctx.fillStyle = '#a16207';
+        else if (t === 3) mctx.fillStyle = '#22c55e';
+        else mctx.fillStyle = '#0f172a';
+        mctx.fillRect(c * TILE * sx, r * TILE * sy, TILE * sx + 0.5, TILE * sy + 0.5);
+      }
+    }
+    mctx.fillStyle = '#38bdf8';
+    mctx.beginPath();
+    mctx.arc(player.x * sx, player.y * sy, 3, 0, Math.PI * 2);
+    mctx.fill();
+    mctx.fillStyle = '#ef4444';
+    zombies.forEach(z => {
+      mctx.fillRect(z.x * sx - 1.5, z.y * sy - 1.5, 3, 3);
+    });
+  }
+
+  function spawnZombie() {
+    // prefer gate tiles
+    const gates = [
+      { x: W / 2, y: 8 },
+      { x: W / 2, y: H - 8 },
+      { x: 8, y: H / 2 },
+      { x: W - 8, y: H / 2 }
+    ];
+    let pos = gates[Math.floor(Math.random() * gates.length)];
+    // random attempts for free space
+    for (let i = 0; i < 12; i++) {
+      const g = gates[Math.floor(Math.random() * gates.length)];
+      const jx = g.x + (Math.random() - 0.5) * 50;
+      const jy = g.y + (Math.random() - 0.5) * 50;
+      if (!circleBlocked(jx, jy, 12)) { pos = { x: jx, y: jy }; break; }
+    }
+    const elite = Math.random() < 0.1 + wave * 0.02;
+    zombies.push({
+      x: pos.x, y: pos.y,
+      hp: elite ? 3 + Math.floor(wave / 2) : 1 + Math.floor(wave / 3),
+      maxHp: elite ? 3 + Math.floor(wave / 2) : 1 + Math.floor(wave / 3),
+      speed: (elite ? 1.25 : 0.9) + wave * 0.07,
+      elite,
+      r: elite ? 15 : 12
+    });
+  }
 
   function reset() {
-    player = { x: 180, y: 240, hp: 5 };
-    zombies = []; bullets = []; keys = {}; score = 0; alive = true;
+    cancelAnimationFrame(raf);
+    mapName = body.querySelector('#zom-map')?.value || 'city';
+    map = genMap(mapName);
+    player = { x: W / 2, y: H / 2, hp: 5, maxHp: 5, angle: -Math.PI / 2 };
+    zombies = []; bullets = []; particles = []; keys = {};
+    score = 0; kills = 0; alive = true; wave = 1; spawnAcc = 0; shootCd = 0; time = 0; camShake = 0;
     scoreEl.textContent = '0';
+    updateHud();
     loop();
   }
 
   function loop() {
     if (!alive) return;
-    ctx.fillStyle = '#0f172a';
-    ctx.fillRect(0, 0, 360, 480);
-    // move player
-    const sp = 2.4;
-    if (keys['ArrowLeft'] || keys['a']) player.x -= sp;
-    if (keys['ArrowRight'] || keys['d']) player.x += sp;
-    if (keys['ArrowUp'] || keys['w']) player.y -= sp;
-    if (keys['ArrowDown'] || keys['s']) player.y += sp;
-    player.x = Math.max(12, Math.min(348, player.x));
-    player.y = Math.max(12, Math.min(468, player.y));
+    time++;
+    const shakeX = camShake ? (Math.random() - 0.5) * camShake : 0;
+    const shakeY = camShake ? (Math.random() - 0.5) * camShake : 0;
+    if (camShake > 0) camShake *= 0.86;
 
-    if (Math.random() < 0.025 + score / 8000) {
-      const side = Math.floor(Math.random() * 4);
-      let x = 0, y = 0;
-      if (side === 0) { x = Math.random() * 360; y = -10; }
-      if (side === 1) { x = Math.random() * 360; y = 490; }
-      if (side === 2) { x = -10; y = Math.random() * 480; }
-      if (side === 3) { x = 370; y = Math.random() * 480; }
-      zombies.push({ x, y, hp: 1 + (score > 50 ? 1 : 0) });
+    ctx.save();
+    ctx.translate(shakeX, shakeY);
+
+    // ambient
+    const bg = ctx.createRadialGradient(W / 2, H / 2, 30, W / 2, H / 2, 380);
+    bg.addColorStop(0, mapName === 'lab' ? '#1e1b4b' : mapName === 'park' ? '#052e16' : '#1e293b');
+    bg.addColorStop(1, '#020617');
+    ctx.fillStyle = bg;
+    ctx.fillRect(-10, -10, W + 20, H + 20);
+
+    drawMap();
+
+    // fog vignette later
+
+    if (kills > wave * 8) wave++;
+    spawnAcc += 0.011 + wave * 0.0028;
+    if (spawnAcc >= 1 && zombies.length < 18 + wave * 2) {
+      spawnAcc = 0;
+      spawnZombie();
+    }
+
+    // movement
+    const sp = 2.65;
+    let mx = 0, my = 0;
+    if (keys['ArrowLeft'] || keys['a'] || keys['A']) mx -= 1;
+    if (keys['ArrowRight'] || keys['d'] || keys['D']) mx += 1;
+    if (keys['ArrowUp'] || keys['w'] || keys['W']) my -= 1;
+    if (keys['ArrowDown'] || keys['s'] || keys['S']) my += 1;
+    if (mx || my) {
+      const len = Math.hypot(mx, my) || 1;
+      tryMove(player, player.x + (mx / len) * sp, player.y + (my / len) * sp, 11);
+    }
+    if (shootCd > 0) shootCd--;
+
+    // hazard damage
+    if (tileAt(player.x, player.y) === 3 && time % 30 === 0) {
+      player.hp -= 1;
+      addParticles(player.x, player.y, '#4ade80', 5);
+      camShake = 6;
+      updateHud();
+      if (player.hp <= 0) alive = false;
     }
 
     // bullets
-    bullets.forEach(b => { b.x += b.vx; b.y += b.vy; });
-    bullets = bullets.filter(b => b.x > -20 && b.x < 380 && b.y > -20 && b.y < 500);
+    bullets.forEach(b => {
+      b.x += b.vx; b.y += b.vy; b.life--;
+      if (solid(tileAt(b.x, b.y))) {
+        b.life = 0;
+        addParticles(b.x, b.y, '#fde68a', 3);
+      }
+    });
+    bullets = bullets.filter(b => b.life > 0);
 
-    // zombies
+    // zombies AI with simple obstacle avoidance
     zombies.forEach(z => {
       const dx = player.x - z.x, dy = player.y - z.y;
       const d = Math.hypot(dx, dy) || 1;
-      z.x += (dx / d) * 1.1;
-      z.y += (dy / d) * 1.1;
-      if (d < 18) {
-        player.hp--;
-        z.x -= dx / d * 30;
-        z.y -= dy / d * 30;
-        if (player.hp <= 0) {
-          alive = false;
-          scoreEl.textContent = 'امتیاز: ' + score + ' · lag پایان';
-        }
+      let vx = (dx / d) * z.speed;
+      let vy = (dy / d) * z.speed;
+      // slide around walls
+      const nx = z.x + vx, ny = z.y + vy;
+      if (circleBlocked(nx, z.y, z.r * 0.85)) vx = 0;
+      if (circleBlocked(z.x, ny, z.r * 0.85)) vy = 0;
+      if (vx === 0 && vy === 0) {
+        // jitter
+        vx = (Math.random() - 0.5) * z.speed;
+        vy = (Math.random() - 0.5) * z.speed;
+      }
+      tryMove(z, z.x + vx, z.y + vy, z.r * 0.85);
+
+      const dist = Math.hypot(player.x - z.x, player.y - z.y);
+      if (dist < 16 + z.r * 0.25 && time % 18 === 0) {
+        player.hp -= z.elite ? 2 : 1;
+        addParticles(player.x, player.y, '#fb7185', 7);
+        camShake = 8;
+        updateHud();
+        if (player.hp <= 0) alive = false;
       }
     });
 
     // collisions bullet-zombie
     bullets.forEach(b => {
       zombies.forEach(z => {
-        if (Math.hypot(b.x - z.x, b.y - z.y) < 14) {
-          z.hp--; b.x = -999;
-          if (z.hp <= 0) { z.dead = true; score += 1; }
+        if (z.dead) return;
+        if (Math.hypot(b.x - z.x, b.y - z.y) < z.r + 3) {
+          z.hp--; b.life = 0;
+          addParticles(z.x, z.y, z.elite ? '#a855f7' : '#4ade80', 6);
+          if (z.hp <= 0) {
+            z.dead = true;
+            kills++;
+            score += z.elite ? 5 : 1;
+            addParticles(z.x, z.y, '#fbbf24', 12);
+          }
         }
       });
     });
     zombies = zombies.filter(z => !z.dead);
-    bullets = bullets.filter(b => b.x !== -999);
 
-    // draw
-    ctx.fillStyle = '#22c55e';
-    ctx.beginPath(); ctx.arc(player.x, player.y, 11, 0, Math.PI * 2); ctx.fill();
-    ctx.fillStyle = '#ef4444';
-    zombies.forEach(z => { ctx.beginPath(); ctx.arc(z.x, z.y, 12, 0, Math.PI * 2); ctx.fill(); });
-    ctx.fillStyle = '#fbbf24';
-    bullets.forEach(b => { ctx.beginPath(); ctx.arc(b.x, b.y, 3, 0, Math.PI * 2); ctx.fill(); });
-    // hp
+    particles.forEach(p => { p.x += p.vx; p.y += p.vy; p.life--; p.vx *= 0.96; p.vy *= 0.96; });
+    particles = particles.filter(p => p.life > 0);
+
+    // draw particles
+    particles.forEach(p => {
+      ctx.globalAlpha = Math.min(1, p.life / 18);
+      ctx.fillStyle = p.color;
+      ctx.beginPath(); ctx.arc(p.x, p.y, 2.4, 0, Math.PI * 2); ctx.fill();
+      ctx.globalAlpha = 1;
+    });
+
+    // zombies
+    zombies.forEach(z => {
+      ctx.beginPath();
+      ctx.fillStyle = z.elite ? '#7c3aed' : '#15803d';
+      ctx.arc(z.x, z.y, z.r, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(0,0,0,0.4)';
+      ctx.stroke();
+      ctx.fillStyle = '#fecaca';
+      ctx.beginPath(); ctx.arc(z.x - 4, z.y - 3, 2.2, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.arc(z.x + 4, z.y - 3, 2.2, 0, Math.PI * 2); ctx.fill();
+      if (z.elite || z.maxHp > 1) {
+        ctx.fillStyle = '#450a0a';
+        ctx.fillRect(z.x - 12, z.y - z.r - 9, 24, 4);
+        ctx.fillStyle = '#f43f5e';
+        ctx.fillRect(z.x - 12, z.y - z.r - 9, 24 * (z.hp / z.maxHp), 4);
+      }
+    });
+
+    // bullets
+    bullets.forEach(b => {
+      ctx.fillStyle = '#fde68a';
+      ctx.shadowColor = '#fbbf24';
+      ctx.shadowBlur = 10;
+      ctx.beginPath(); ctx.arc(b.x, b.y, 3.5, 0, Math.PI * 2); ctx.fill();
+      ctx.shadowBlur = 0;
+    });
+
+    // player
+    ctx.save();
+    ctx.translate(player.x, player.y);
+    ctx.rotate(player.angle);
+    ctx.fillStyle = '#0ea5e9';
+    ctx.beginPath();
+    ctx.moveTo(15, 0); ctx.lineTo(-11, 10); ctx.lineTo(-6, 0); ctx.lineTo(-11, -10);
+    ctx.closePath(); ctx.fill();
+    ctx.fillStyle = '#e0f2fe';
+    ctx.beginPath(); ctx.arc(0, 0, 5.5, 0, Math.PI * 2); ctx.fill();
+    ctx.restore();
+
+    // HP bar
+    ctx.fillStyle = 'rgba(0,0,0,0.4)';
+    ctx.fillRect(14, 12, 140, 11);
+    ctx.fillStyle = player.hp > 2 ? '#22c55e' : '#ef4444';
+    ctx.fillRect(14, 12, 140 * (Math.max(0, player.hp) / player.maxHp), 11);
     ctx.fillStyle = '#e2e8f0';
-    ctx.font = '12px sans-serif';
-    ctx.fillText('HP: ' + player.hp, 10, 18);
+    ctx.font = 'bold 11px sans-serif';
+    ctx.textAlign = 'left';
+    ctx.fillText(mapName === 'city' ? 'شهر متروکه' : mapName === 'lab' ? 'آزمایشگاه' : 'پارک تاریک', 14, 38);
 
-    if (alive) {
-      scoreEl.textContent = String(score);
-      raf = requestAnimationFrame(loop);
+    // vignette
+    const vig = ctx.createRadialGradient(W / 2, H / 2, H * 0.25, W / 2, H / 2, H * 0.72);
+    vig.addColorStop(0, 'rgba(0,0,0,0)');
+    vig.addColorStop(1, 'rgba(0,0,0,0.45)');
+    ctx.fillStyle = vig;
+    ctx.fillRect(0, 0, W, H);
+
+    ctx.restore();
+
+    drawMini();
+
+    if (!alive) {
+      ctx.fillStyle = 'rgba(0,0,0,0.6)';
+      ctx.fillRect(0, 0, W, H);
+      ctx.fillStyle = '#fff';
+      ctx.font = 'bold 26px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('Game Over', W / 2, H / 2 - 12);
+      ctx.font = '14px sans-serif';
+      ctx.fillText('امتیاز ' + score + ' · کشت ' + kills + ' · موج ' + wave, W / 2, H / 2 + 18);
+      scoreEl.textContent = 'پایان · ' + score;
+      return;
     }
+
+    scoreEl.textContent = String(score);
+    updateHud();
+    raf = requestAnimationFrame(loop);
   }
 
   function shoot(tx, ty) {
-    if (!alive) return;
+    if (!alive || shootCd > 0) return;
     const dx = tx - player.x, dy = ty - player.y;
     const d = Math.hypot(dx, dy) || 1;
-    bullets.push({ x: player.x, y: player.y, vx: (dx / d) * 6, vy: (dy / d) * 6 });
+    player.angle = Math.atan2(dy, dx);
+    bullets.push({ x: player.x + Math.cos(player.angle) * 12, y: player.y + Math.sin(player.angle) * 12, vx: (dx / d) * 8, vy: (dy / d) * 8, life: 50 });
+    shootCd = 7;
   }
 
-  window.addEventListener('keydown', function zk(e) {
-    if (!body.contains(canvas)) { window.removeEventListener('keydown', zk); return; }
+  function onKeyDown(e) {
+    if (!body.contains(canvas)) { window.removeEventListener('keydown', onKeyDown); return; }
     keys[e.key] = true;
-    if (e.key === ' ') { e.preventDefault(); shoot(player.x, player.y - 40); }
+    if (e.key === ' ' || e.code === 'Space') {
+      e.preventDefault();
+      shoot(player.x + Math.cos(player.angle) * 50, player.y + Math.sin(player.angle) * 50);
+    }
+  }
+  function onKeyUp(e) { keys[e.key] = false; }
+  window.addEventListener('keydown', onKeyDown);
+  window.addEventListener('keyup', onKeyUp);
+  canvas.addEventListener('mousemove', e => {
+    if (!player) return;
+    const r = canvas.getBoundingClientRect();
+    const tx = (e.clientX - r.left) * (W / r.width);
+    const ty = (e.clientY - r.top) * (H / r.height);
+    player.angle = Math.atan2(ty - player.y, tx - player.x);
   });
-  window.addEventListener('keyup', e => { keys[e.key] = false; });
   canvas.addEventListener('click', e => {
     const r = canvas.getBoundingClientRect();
-    shoot((e.clientX - r.left) * (360 / r.width), (e.clientY - r.top) * (480 / r.height));
+    shoot((e.clientX - r.left) * (W / r.width), (e.clientY - r.top) * (H / r.height));
   });
-  body.querySelector('#zom-start').onclick = () => { cancelAnimationFrame(raf); reset(); };
+  body.querySelector('#zom-start').onclick = reset;
+  body.querySelector('#zom-map')?.addEventListener('change', reset);
   reset();
 }
+
 
 // Ensure escapeHtml exists
 if (typeof escapeHtml !== 'function') {
@@ -7582,9 +8358,528 @@ if (typeof escapeHtml !== 'function') {
 
 // Re-bind games menu after override
 document.getElementById('games-menu')?.addEventListener('click', (e) => {
-  const card = e.target.closest('.game-card');
+  const card = e.target.closest('.game-card, .game-card-pro');
   if (!card) return;
   openGame(card.dataset.game);
 });
 
 console.log('[AIO] enhancements loaded');
+
+
+// ========== Live Prices Center (Iran free market · تومان · auto-refresh) ==========
+let pricesTimer = null;
+let pricesCountdownTimer = null;
+let pricesLoading = false;
+let pricesChartSym = 'USD_IRR_FREE';
+let pricesChartType = 'candle'; // 'line' | 'candle'
+let pricesChartCache = {};
+let pricesPrevValues = {};
+const PRICES_REFRESH_SEC = 30;
+let pricesCountdownLeft = PRICES_REFRESH_SEC;
+
+const IRAN_MARKET_CDN = 'https://cdn.jsdelivr.net/gh/iran-market/iran-market.github.io@main/data';
+const IRAN_MARKET_RAW = 'https://raw.githubusercontent.com/iran-market/iran-market.github.io/main/data';
+
+function formatPriceNum(n, digits) {
+  if (n == null || isNaN(n)) return '—';
+  const d = digits != null ? digits : (Math.abs(n) >= 1000 ? 0 : (Math.abs(n) >= 1 ? 2 : 4));
+  try {
+    return Number(n).toLocaleString('fa-IR', { maximumFractionDigits: d, minimumFractionDigits: 0 });
+  } catch (e) {
+    return String(Number(n).toFixed(d));
+  }
+}
+
+function priceCard(item) {
+  const change = item.change;
+  let chHtml = '';
+  let trendClass = '';
+  if (change != null && !isNaN(change)) {
+    const up = change >= 0;
+    trendClass = up ? 'is-up' : 'is-down';
+    chHtml = `<span class="price-chg ${up ? 'up' : 'down'}">${up ? '▲' : '▼'} ${Math.abs(change).toFixed(2)}%</span>`;
+  }
+  const flash = item.flash ? ' price-flash' : '';
+  const hiLo = (item.high != null || item.low != null)
+    ? `<div class="price-hilo"><span>H ${formatPriceNum(item.high, 0)}</span><span>L ${formatPriceNum(item.low, 0)}</span></div>`
+    : '';
+  return `<article class="price-card ${item.tone || ''} ${trendClass}${flash}" data-sym="${item.sym || ''}">
+    <div class="price-card-top">
+      <div class="price-icon">${item.icon || '•'}</div>
+      <div class="price-card-titles">
+        <strong>${item.title}</strong>
+        <span class="price-sub">${item.sub || ''}</span>
+      </div>
+      ${chHtml}
+    </div>
+    <div class="price-value" dir="ltr">${item.value}</div>
+    <div class="price-foot">
+      <span class="price-unit">${item.unit || ''}</span>
+      ${hiLo}
+    </div>
+  </article>`;
+}
+
+async function fetchJson(url, timeoutMs) {
+  const ctrl = new AbortController();
+  const t = setTimeout(() => ctrl.abort(), timeoutMs || 15000);
+  try {
+    const res = await fetch(url, { signal: ctrl.signal, cache: 'no-store' });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    return await res.json();
+  } finally {
+    clearTimeout(t);
+  }
+}
+
+async function fetchIranPopular() {
+  const urls = [
+    IRAN_MARKET_CDN + '/popular.json',
+    IRAN_MARKET_RAW + '/popular.json'
+  ];
+  for (const u of urls) {
+    try {
+      const j = await fetchJson(u, 12000);
+      if (j && Array.isArray(j.data) && j.data.length) return j.data;
+    } catch (e) {}
+  }
+  return null;
+}
+
+async function fetchIranHistory(symbol) {
+  if (pricesChartCache[symbol]) return pricesChartCache[symbol];
+  const urls = [
+    IRAN_MARKET_CDN + '/history/' + symbol + '.json',
+    IRAN_MARKET_RAW + '/history/' + symbol + '.json'
+  ];
+  for (const u of urls) {
+    try {
+      const j = await fetchJson(u, 20000);
+      const rows = (j && j.data) ? j.data : (Array.isArray(j) ? j : null);
+      if (rows && rows.length) {
+        pricesChartCache[symbol] = rows;
+        return rows;
+      }
+    } catch (e) {}
+  }
+  return null;
+}
+
+function updatePricesCountdownUI() {
+  const num = document.getElementById('prices-countdown');
+  const arc = document.getElementById('prices-countdown-arc');
+  if (num) num.textContent = String(pricesCountdownLeft);
+  if (arc) {
+    const pct = (pricesCountdownLeft / PRICES_REFRESH_SEC) * 100;
+    arc.setAttribute('stroke-dasharray', pct.toFixed(1) + ', 100');
+  }
+}
+
+function resetPricesCountdown() {
+  pricesCountdownLeft = PRICES_REFRESH_SEC;
+  updatePricesCountdownUI();
+}
+
+function tickPricesCountdown() {
+  if (appMode !== 'prices' && !document.getElementById('tab-prices')?.classList.contains('active')) return;
+  pricesCountdownLeft -= 1;
+  if (pricesCountdownLeft <= 0) {
+    pricesCountdownLeft = PRICES_REFRESH_SEC;
+    loadMarketPrices(true);
+  }
+  updatePricesCountdownUI();
+}
+
+async function loadMarketPrices(silent) {
+  if (pricesLoading) return;
+  pricesLoading = true;
+  const st = document.getElementById('prices-status');
+  const btn = document.getElementById('btn-prices-refresh');
+  if (btn) btn.classList.add('is-loading');
+  if (st && !silent) st.textContent = 'در حال دریافت قیمت‌های بازار آزاد…';
+  if (st && silent) st.textContent = 'بروزرسانی خودکار…';
+
+  const fxBox = document.getElementById('prices-fx');
+  const metalBox = document.getElementById('prices-metals');
+  const cryptoBox = document.getElementById('prices-crypto');
+
+  try {
+    const [popular, goldUsd, btcUsd, ethUsd] = await Promise.all([
+      fetchIranPopular(),
+      fetchJson('https://api.gold-api.com/price/XAU').catch(() => null),
+      fetchJson('https://api.gold-api.com/price/BTC').catch(() => null),
+      fetchJson('https://api.gold-api.com/price/ETH').catch(() => null)
+    ]);
+
+    const bySym = {};
+    if (popular) popular.forEach(p => { bySym[p.symbol] = p; });
+
+    const fxCards = [];
+    const metalCards = [];
+    const cryptoCards = [];
+
+    const pushFrom = (sym, icon, title, tone, box) => {
+      const p = bySym[sym];
+      if (!p || p.price == null) return;
+      const unitLabel = (p.unit === 'gram') ? 'تومان / گرم' : (p.unit === 'coin' ? 'تومان / سکه' : 'تومان');
+      const prev = pricesPrevValues[sym];
+      const flash = prev != null && prev !== p.price;
+      pricesPrevValues[sym] = p.price;
+      box.push({
+        sym,
+        icon,
+        title: title || p.name_fa || sym,
+        sub: 'بازار آزاد',
+        value: formatPriceNum(p.price, 0),
+        unit: unitLabel,
+        change: p.change_pct,
+        high: p.high,
+        low: p.low,
+        tone,
+        flash
+      });
+    };
+
+    pushFrom('USD_IRR_FREE', '💵', 'دلار آمریکا', 'tone-usd', fxCards);
+    pushFrom('EUR_IRR_FREE', '💶', 'یورو', 'tone-eur', fxCards);
+    pushFrom('GBP_IRR_FREE', '💷', 'پوند انگلیس', 'tone-gbp', fxCards);
+    pushFrom('USDT_IRR', '₮', 'تتر (USDT)', 'tone-usdt', cryptoCards);
+
+    pushFrom('GOLD_18K_IRR', '🥇', 'طلای ۱۸ عیار', 'tone-gold', metalCards);
+    pushFrom('COIN_EMAMI_IRR', '🪙', 'سکه امامی', 'tone-gold', metalCards);
+
+    const usdToman = bySym.USD_IRR_FREE && bySym.USD_IRR_FREE.price;
+    if (goldUsd && goldUsd.price) {
+      const sym = 'XAU_USD';
+      const flash = pricesPrevValues[sym] != null && pricesPrevValues[sym] !== goldUsd.price;
+      pricesPrevValues[sym] = goldUsd.price;
+      metalCards.push({
+        sym, icon: '🌍', title: 'انس جهانی طلا', sub: 'XAU / USD',
+        value: formatPriceNum(goldUsd.price, 2), unit: 'دلار / اونس', tone: 'tone-gold', flash
+      });
+    }
+
+    if (btcUsd && btcUsd.price) {
+      const flash = pricesPrevValues.BTC_USD != null && pricesPrevValues.BTC_USD !== btcUsd.price;
+      pricesPrevValues.BTC_USD = btcUsd.price;
+      cryptoCards.push({
+        sym: 'BTC_USD', icon: '₿', title: 'بیت‌کوین', sub: 'BTC / USD',
+        value: formatPriceNum(btcUsd.price, 0), unit: 'دلار', tone: 'tone-btc', flash
+      });
+      if (usdToman) {
+        const tVal = btcUsd.price * usdToman;
+        const tFlash = pricesPrevValues.BTC_IRT != null && pricesPrevValues.BTC_IRT !== tVal;
+        pricesPrevValues.BTC_IRT = tVal;
+        cryptoCards.push({
+          sym: 'BTC_IRT', icon: '₿', title: 'بیت‌کوین / تومان', sub: 'تقریبی',
+          value: formatPriceNum(tVal, 0), unit: 'تومان', tone: 'tone-btc', flash: tFlash
+        });
+      }
+    }
+    if (ethUsd && ethUsd.price) {
+      const flash = pricesPrevValues.ETH_USD != null && pricesPrevValues.ETH_USD !== ethUsd.price;
+      pricesPrevValues.ETH_USD = ethUsd.price;
+      cryptoCards.push({
+        sym: 'ETH_USD', icon: 'Ξ', title: 'اتریوم', sub: 'ETH / USD',
+        value: formatPriceNum(ethUsd.price, 2), unit: 'دلار', tone: 'tone-eth', flash
+      });
+      if (usdToman) {
+        const tVal = ethUsd.price * usdToman;
+        const tFlash = pricesPrevValues.ETH_IRT != null && pricesPrevValues.ETH_IRT !== tVal;
+        pricesPrevValues.ETH_IRT = tVal;
+        cryptoCards.push({
+          sym: 'ETH_IRT', icon: 'Ξ', title: 'اتریوم / تومان', sub: 'تقریبی',
+          value: formatPriceNum(tVal, 0), unit: 'تومان', tone: 'tone-eth', flash: tFlash
+        });
+      }
+    }
+
+    if (fxBox) {
+      fxBox.innerHTML = fxCards.length
+        ? fxCards.map(priceCard).join('')
+        : '<p class="field-hint">دریافت نرخ ارز ناموفق بود — اینترنت یا VPN را چک کنید</p>';
+    }
+    if (metalBox) {
+      metalBox.innerHTML = metalCards.length
+        ? metalCards.map(priceCard).join('')
+        : '<p class="field-hint">دریافت قیمت طلا ناموفق بود</p>';
+    }
+    if (cryptoBox) {
+      cryptoBox.innerHTML = cryptoCards.length
+        ? cryptoCards.map(priceCard).join('')
+        : '<p class="field-hint">دریافت رمزارز ناموفق بود</p>';
+    }
+
+    const upd = document.getElementById('prices-updated');
+    if (upd) {
+      const now = new Date();
+      upd.textContent = 'آخرین: ' + now.toLocaleTimeString('fa-IR');
+    }
+    if (st) {
+      st.innerHTML = popular
+        ? '<span class="prices-status-ok">●</span> قیمت‌ها زنده · بازار آزاد ایران (تومان)'
+        : '<span class="prices-status-warn">●</span> بخشی از قیمت‌ها بارگذاری شد';
+    }
+    if (!silent && typeof showToast === 'function') showToast('قیمت‌ها بروزرسانی شد', 'success');
+
+    resetPricesCountdown();
+    if (!silent) setTimeout(() => loadPricesChart(pricesChartSym), 200);
+  } catch (e) {
+    console.warn(e);
+    if (st) st.textContent = 'خطا در دریافت قیمت‌ها — اتصال اینترنت را چک کنید';
+  } finally {
+    pricesLoading = false;
+    if (btn) btn.classList.remove('is-loading');
+  }
+}
+
+function getPricesThemeColors() {
+  const s = getComputedStyle(document.documentElement);
+  const pick = (name, fallback) => (s.getPropertyValue(name).trim() || fallback);
+  return {
+    bg: pick('--bg', '#0b0f19'),
+    text: pick('--text', '#e2e8f0'),
+    muted: pick('--text-muted', '#94a3b8'),
+    accent: pick('--accent', '#818cf8'),
+    ok: pick('--ok', pick('--green', '#22c55e')),
+    red: pick('--red', '#ef4444')
+  };
+}
+
+function drawPricesHistoryChart(rows, title, type) {
+  const canvas = document.getElementById('prices-history-canvas');
+  const status = document.getElementById('prices-chart-status');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const dpr = window.devicePixelRatio || 1;
+  const cssW = canvas.clientWidth || 800;
+  const cssH = 300;
+  canvas.width = Math.floor(cssW * dpr);
+  canvas.height = Math.floor(cssH * dpr);
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+  const w = cssW;
+  const h = cssH;
+  const pad = { t: 30, r: 58, b: 38, l: 10 };
+  const tc = getPricesThemeColors();
+  const chartType = type || pricesChartType || 'candle';
+
+  ctx.clearRect(0, 0, w, h);
+  ctx.fillStyle = tc.bg;
+  ctx.fillRect(0, 0, w, h);
+
+  if (!rows || rows.length < 2) {
+    if (status) status.textContent = 'دادهٔ تاریخی برای این نماد موجود نیست';
+    return;
+  }
+
+  // OHLC normalize
+  const candles = rows.map(r => ({
+    o: Number(r.open != null ? r.open : r.close),
+    h: Number(r.high != null ? r.high : r.close),
+    l: Number(r.low != null ? r.low : r.close),
+    c: Number(r.close),
+    date: r.date_jalali || (r.t || '').slice(0, 10)
+  }));
+
+  const highs = candles.map(c => c.h);
+  const lows = candles.map(c => c.l);
+  const closes = candles.map(c => c.c);
+  let minV = Math.min(...lows);
+  let maxV = Math.max(...highs);
+  // padding on value range
+  const span = (maxV - minV) || 1;
+  minV -= span * 0.04;
+  maxV += span * 0.04;
+  const range = maxV - minV;
+  const plotW = w - pad.l - pad.r;
+  const plotH = h - pad.t - pad.b;
+
+  const yAt = (v) => pad.t + plotH * (1 - (v - minV) / range);
+  const n = candles.length;
+  const slot = plotW / n;
+  const bodyW = Math.max(2, Math.min(14, slot * 0.62));
+
+  // grid + y labels
+  ctx.strokeStyle = tc.muted + '22';
+  ctx.lineWidth = 1;
+  for (let i = 0; i <= 4; i++) {
+    const y = pad.t + (plotH * i) / 4;
+    ctx.beginPath();
+    ctx.moveTo(pad.l, y);
+    ctx.lineTo(w - pad.r, y);
+    ctx.stroke();
+    const val = maxV - (range * i) / 4;
+    ctx.fillStyle = tc.muted;
+    ctx.font = '11px Vazirmatn, Tahoma, sans-serif';
+    ctx.textAlign = 'left';
+    ctx.fillText(formatPriceNum(val, 0), w - pad.r + 6, y + 4);
+  }
+
+  if (chartType === 'candle') {
+    // candlesticks
+    for (let i = 0; i < n; i++) {
+      const cd = candles[i];
+      const x = pad.l + slot * i + slot / 2;
+      const bull = cd.c >= cd.o;
+      const col = bull ? tc.ok : tc.red;
+
+      // wick
+      ctx.beginPath();
+      ctx.strokeStyle = col;
+      ctx.lineWidth = Math.max(1, bodyW * 0.18);
+      ctx.moveTo(x, yAt(cd.h));
+      ctx.lineTo(x, yAt(cd.l));
+      ctx.stroke();
+
+      // body
+      const yO = yAt(cd.o);
+      const yC = yAt(cd.c);
+      const top = Math.min(yO, yC);
+      const bh = Math.max(1.5, Math.abs(yC - yO));
+      ctx.fillStyle = col;
+      ctx.fillRect(x - bodyW / 2, top, bodyW, bh);
+    }
+  } else {
+    // line + area
+    const xAt = (i) => pad.l + slot * i + slot / 2;
+    const up = closes[closes.length - 1] >= closes[0];
+    const lineColor = up ? tc.ok : tc.red;
+    const grad = ctx.createLinearGradient(0, pad.t, 0, h - pad.b);
+    grad.addColorStop(0, lineColor + '59');
+    grad.addColorStop(1, tc.bg + '00');
+
+    ctx.beginPath();
+    ctx.moveTo(xAt(0), yAt(closes[0]));
+    for (let i = 1; i < n; i++) ctx.lineTo(xAt(i), yAt(closes[i]));
+    ctx.lineTo(xAt(n - 1), h - pad.b);
+    ctx.lineTo(xAt(0), h - pad.b);
+    ctx.closePath();
+    ctx.fillStyle = grad;
+    ctx.fill();
+
+    ctx.beginPath();
+    ctx.moveTo(xAt(0), yAt(closes[0]));
+    for (let i = 1; i < n; i++) ctx.lineTo(xAt(i), yAt(closes[i]));
+    ctx.strokeStyle = lineColor;
+    ctx.lineWidth = 2.2;
+    ctx.lineJoin = 'round';
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.arc(xAt(n - 1), yAt(closes[n - 1]), 4, 0, Math.PI * 2);
+    ctx.fillStyle = lineColor;
+    ctx.fill();
+  }
+
+  // header
+  const chPct = ((closes[closes.length - 1] - closes[0]) / closes[0]) * 100;
+  const typeLabel = chartType === 'candle' ? 'کندل' : 'خطی';
+  ctx.fillStyle = tc.text;
+  ctx.font = '600 13px Vazirmatn, Tahoma, sans-serif';
+  ctx.textAlign = 'right';
+  ctx.fillText((title || '') + ' · ' + typeLabel, w - pad.r, 18);
+  ctx.fillStyle = chPct >= 0 ? tc.ok : tc.red;
+  ctx.font = '12px Vazirmatn, Tahoma, sans-serif';
+  ctx.textAlign = 'left';
+  ctx.fillText((chPct >= 0 ? '▲ ' : '▼ ') + Math.abs(chPct).toFixed(1) + '% در بازه', pad.l, 18);
+
+  // date labels
+  ctx.fillStyle = tc.muted;
+  ctx.font = '10px Vazirmatn, Tahoma, sans-serif';
+  ctx.textAlign = 'center';
+  const mid = Math.floor(n / 2);
+  [0, mid, n - 1].forEach(i => {
+    const x = pad.l + slot * i + slot / 2;
+    ctx.fillText(candles[i].date, x, h - 10);
+  });
+
+  if (status) {
+    const last = candles[candles.length - 1];
+    status.textContent = title + ' · ' + typeLabel + ' · ' + n + ' روز · O ' + formatPriceNum(last.o, 0) +
+      '  H ' + formatPriceNum(last.h, 0) + '  L ' + formatPriceNum(last.l, 0) + '  C ' + formatPriceNum(last.c, 0);
+  }
+}
+
+async function loadPricesChart(sym) {
+  pricesChartSym = sym || pricesChartSym || 'USD_IRR_FREE';
+  const status = document.getElementById('prices-chart-status');
+  if (status) status.textContent = 'در حال بارگذاری نمودار…';
+
+  document.querySelectorAll('.prices-chart-btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.chartSym === pricesChartSym);
+  });
+  document.querySelectorAll('.prices-type-btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.chartType === pricesChartType);
+  });
+
+  const rangeSel = document.getElementById('prices-chart-range');
+  const days = parseInt(rangeSel?.value || '90', 10);
+
+  const titles = {
+    USD_IRR_FREE: 'دلار آزاد (تومان)',
+    EUR_IRR_FREE: 'یورو (تومان)',
+    GOLD_18K_IRR: 'طلای ۱۸ عیار (تومان/گرم)',
+    COIN_EMAMI_IRR: 'سکه امامی (تومان)',
+    USDT_IRR: 'تتر (تومان)'
+  };
+
+  try {
+    const rows = await fetchIranHistory(pricesChartSym);
+    if (!rows || !rows.length) {
+      if (status) status.textContent = 'تاریخچه برای این نماد یافت نشد';
+      return;
+    }
+    const sliced = rows.slice(-Math.max(days, 7));
+    drawPricesHistoryChart(sliced, titles[pricesChartSym] || pricesChartSym, pricesChartType);
+  } catch (e) {
+    console.warn(e);
+    if (status) status.textContent = 'خطا در بارگذاری نمودار';
+  }
+}
+
+function initPricesCenter() {
+  document.getElementById('btn-prices-refresh')?.addEventListener('click', () => {
+    resetPricesCountdown();
+    loadMarketPrices(false);
+  });
+
+  document.querySelectorAll('.prices-chart-btn').forEach(btn => {
+    btn.addEventListener('click', () => loadPricesChart(btn.dataset.chartSym));
+  });
+  document.querySelectorAll('.prices-type-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      pricesChartType = btn.dataset.chartType || 'candle';
+      loadPricesChart(pricesChartSym);
+    });
+  });
+  document.getElementById('prices-chart-range')?.addEventListener('change', () => {
+    loadPricesChart(pricesChartSym);
+  });
+
+  if (pricesTimer) clearInterval(pricesTimer);
+  if (pricesCountdownTimer) clearInterval(pricesCountdownTimer);
+
+  pricesCountdownTimer = setInterval(tickPricesCountdown, 1000);
+  pricesTimer = setInterval(() => {
+    if (appMode === 'prices' || document.getElementById('tab-prices')?.classList.contains('active')) {
+      // tick already triggers load when reaches 0
+    }
+  }, 5000);
+
+  const panel = document.getElementById('tab-prices');
+  if (panel) {
+    const obs = new MutationObserver(() => {
+      if (panel.classList.contains('active')) {
+        resetPricesCountdown();
+        loadPricesChart(pricesChartSym);
+      }
+    });
+    obs.observe(panel, { attributes: true, attributeFilter: ['class'] });
+  }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  try { initPricesCenter(); } catch (e) {}
+});
+try { initPricesCenter(); } catch (e) {}
